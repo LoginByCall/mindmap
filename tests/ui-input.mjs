@@ -21,6 +21,14 @@ async function click(x, y, n = 1, button = 'left') {
   for (let i = 1; i <= n; i++) { await mouse('mousePressed', x, y, i, button); await mouse('mouseReleased', x, y, i, button); }
   await sleep(500);
 }
+async function key(k, modifiers = 0) {   // настоящая клавиша; modifiers: 2 = Ctrl, 8 = Shift
+  const vk = { Enter: 13 }[k];
+  const plain = k === 'Enter' && !(modifiers & 2);
+  await cdp('Input.dispatchKeyEvent', { type: plain ? 'keyDown' : 'rawKeyDown', key: k, code: k, windowsVirtualKeyCode: vk, modifiers, ...(plain && { text: '\r' }) });
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: vk, modifiers });
+  await sleep(500);
+}
+const hasLi = (text) => js(`!![...document.querySelectorAll('g.markmap-node')].find((g) => g.__data__.payload.ref.text === ${JSON.stringify(text)})?.querySelector('.mm-notes li')`);
 const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) fails++; };
 // центр элемента по селектору внутри узла с данным текстом
 const at = (text, sel) => js(`(() => {
@@ -48,30 +56,51 @@ try {
   await cdp('Input.insertText', { text: 'Мышь!' }); await js(`edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))`); await sleep(500);
   ok(await js(`src.value.includes('## Мышь!')`), 'новое название попало в исходник');
 
-  // двойной клик по пункту списка -> правка именно этого пункта
-  p = await at('Список под узлом', '[data-note="1"]');
+  // список под чертой: верх списка ниже черты узла; названия и списки разных узлов не пересекаются
+  ok(await js(`(() => {
+    const g = [...document.querySelectorAll('g.markmap-node')].find((g) => g.__data__.payload.ref.text === 'Список под узлом');
+    return g.querySelector('.mm-nt').getBoundingClientRect().top >= g.querySelector('line').getBoundingClientRect().bottom;   // первая строка списка (▾) ниже черты
+  })()`), 'список размещён под чертой');
+  ok(await js(`(() => {
+    const rs = [...document.querySelectorAll('.mm-t, .mm-notes')].map((e) => e.getBoundingClientRect());
+    return rs.every((a, i) => rs.every((b, j) => j <= i || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5 || a.right <= b.left + 0.5 || b.right <= a.left + 0.5));
+  })()`), 'названия и списки не налезают друг на друга');
+
+  // двойной клик по списку -> одно поле, строка = пункт; Enter — новая строка, Ctrl+Enter — готово
+  p = await at('Список под узлом', '.mm-notes li');
   ok(!!p, 'список под узлом отрисован');
   await click(...p, 2);
-  ok(await js(`edit.style.display === 'block' && edit.classList.contains('note') && edit.value.startsWith('▾ сворачивает')`), 'двойной клик по пункту открывает правку пункта');
-  await cdp('Input.insertText', { text: 'изменённый пункт' }); await js(`edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))`); await sleep(500);
-  ok(await js(`src.value.includes('> - изменённый пункт')`), 'изменённый пункт попал в исходник');
+  ok(await js(`edit.style.display === 'block' && edit.classList.contains('note') && edit.value.split('\\n').length === 3 && edit.value.startsWith('мелкий шрифт')`), 'двойной клик по списку открывает весь список одним полем');
+  await key('Enter');
+  ok(await js(`edit.style.display === 'block' && edit.value.split('\\n').length === 4`), 'Enter в поле списка добавляет строку, а не закрывает');
+  await cdp('Input.insertText', { text: '- новый пункт' });
+  await key('Enter', 2);
+  ok(await js(`edit.style.display === 'none' && src.value.includes('> - в Markdown: «> - пункт»\\n> - новый пункт')`), 'Ctrl+Enter сохраняет список, маркер «- » срезан');
+
+  // Shift+Enter на узле без списка -> пустое поле под чертой, пустые строки отбрасываются
+  await click(...(await at('Клавиши', '.mm-t')));
+  await key('Enter', 8);
+  ok(await js(`edit.style.display === 'block' && edit.value === '' && edit.classList.contains('note')`), 'Shift+Enter открывает новый список');
+  await js(`edit.value = 'раз\\n\\n два '`);
+  await key('Enter', 2);
+  ok(await js(`src.value.includes('## Клавиши\\n> - раз\\n> - два\\n')`), 'новый список сохранён без пустых строк');
 
   // клик по ▾ сворачивает список, повторный — разворачивает
   await click(...(await at('Список под узлом', '[data-nt]')));
-  ok(await js(`src.value.includes('## Список под узлом <!-- notes: fold -->') && !document.querySelector('[data-note]')`), 'клик по ▾ сворачивает список');
+  ok(await js(`src.value.includes('## Список под узлом <!-- notes: fold -->')`) && !(await hasLi('Список под узлом')), 'клик по ▾ сворачивает список');
   await click(...(await at('Список под узлом', '[data-nt]')));
-  ok(await js(`!src.value.includes('notes: fold') && !!document.querySelector('[data-note]')`), 'клик по ▸ разворачивает список');
+  ok(await js(`!src.value.includes('Список под узлом <!-- notes: fold -->')`) && await hasLi('Список под узлом'), 'клик по ▸ разворачивает список');
 
-  // правый клик по пункту -> меню пункта; клик мимо — закрывает
-  await click(...(await at('Список под узлом', '[data-note="0"]')), 1, 'right');
-  ok(await js(`menu.style.display === 'block' && menu.textContent.includes('Удалить пункт')`), 'правый клик по пункту — меню пункта');
+  // правый клик по списку -> «Изменить список»; клик мимо — закрывает
+  await click(...(await at('Список под узлом', '.mm-notes li')), 1, 'right');
+  ok(await js(`menu.style.display === 'block' && menu.textContent.startsWith('Изменить список')`), 'правый клик по списку — «Изменить список»');
   await click(1100, 700);
   ok(await js(`menu.style.display === 'none'`), 'клик мимо закрывает меню');
 
   // меню «Файл»: открыть, закрыть повторным кликом
   const fb = await js(`(() => { const r = fileBtn.getBoundingClientRect(); return [r.x + 10, r.y + 10]; })()`);
   await click(...fb);
-  ok(await js(`menu.style.display === 'block' && ['Новый', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
+  ok(await js(`menu.style.display === 'block' && ['Новый', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…', 'Выход'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
   await click(...fb);
   ok(await js(`menu.style.display === 'none'`), 'повторный клик по «Файл» закрывает меню');
 } catch (e) { console.log('FAIL ' + e.stack); fails++; }

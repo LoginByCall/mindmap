@@ -238,6 +238,9 @@ def main():
                 state['dirty'] = a['dirty']
                 win.set_title(('● ' if a['dirty'] else '') + a['name'] + ' — Mind Map')
                 val = True
+            elif cmd == 'quit':
+                GLib.idle_add(win.close)  # как кнопка закрытия: delete-event спросит про несохранённое
+                val = True
             elif cmd == 'confirm':
                 val = ask(a['text'])
             elif cmd == 'open':

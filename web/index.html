@@ -34,7 +34,9 @@
   #edit { position: fixed; display: none; z-index: 5; font: 300 16px/20px sans-serif; padding: 2px 4px; resize: none;
           border: 1px solid #4e79a7; border-radius: 3px; outline: none; background: var(--bg); color: var(--fg); }
   /* без opacity: в WebKitGTK она выносит содержимое foreignObject в слой, и тот рисуется не на месте */
-  .mm-notes { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: 1px; }
+  .mm-notes { font-size: 12px; line-height: 16px; color: var(--muted); padding-top: 5px; }
+  /* список свисает ниже черты, за пределы foreignObject (высота которого = название) */
+  #map .markmap-foreign, #print .markmap-foreign { overflow: visible; }
   .mm-notes ul { margin: 0; padding-left: 16px; }
   .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
   .mm-nt:hover { color: var(--fg); }
