@@ -349,16 +349,30 @@ function dropAt(e) {
   mark.className = 'mm-drop ' + where;
   return { t, where };
 }
-function endDrag() { drag?.ghost?.remove(); mark.style.display = 'none'; document.body.classList.remove('dragging'); drag = null; }
+function endDrag() { clearInterval(drag?.scroll); drag?.ghost?.remove(); mark.style.display = 'none'; document.body.classList.remove('dragging'); drag = null; }
+// автопрокрутка: курсор ближе EDGE к краю полотна — полотно едет туда, чем ближе, тем быстрее
+const EDGE = 40, SPEED = 18;   // px зоны, px за такт (~60 в секунду)
+function autoScroll() {
+  const r = svg.getBoundingClientRect(), { clientX: x, clientY: y } = drag.at;
+  const v = (d) => (d < EDGE ? SPEED * (1 - Math.max(d, 0) / EDGE) : 0);
+  const dx = v(x - r.left) - v(r.right - x), dy = v(y - r.top) - v(r.bottom - y);
+  if (!dx && !dy) return;
+  const k = d3.zoomTransform(svg).k;
+  mm.svg.call(mm.zoom.translateBy, dx / k, dy / k);   // translateBy — в единицах карты, а сдвиг нужен в пикселях экрана
+  drag.to = dropAt(drag.at);   // цели под курсором сместились
+  if (!drag.to) mark.style.display = 'none';
+}
 document.addEventListener('mousemove', (e) => {
   if (!drag) return;
   if (!(e.buttons & 1)) return endDrag();   // кнопку отпустили за окном
   if (!drag.ghost) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;   // ещё клик, а не перетаскивание
     drag.ghost = document.body.appendChild(div('mm-ghost')); drag.ghost.textContent = plain(drag.n.text);
-    document.body.classList.add('dragging');
+    document.body.classList.add('dragging'); getSelection().removeAllRanges();
   }
   Object.assign(drag.ghost.style, { left: e.clientX + 12 + 'px', top: e.clientY + 8 + 'px' });
+  drag.at = { clientX: e.clientX, clientY: e.clientY };
+  drag.scroll ||= setInterval(autoScroll, 16);
   drag.to = dropAt(e);
   if (!drag.to) mark.style.display = 'none';
 });
@@ -369,6 +383,8 @@ document.addEventListener('mouseup', () => {
   noClick = true;   // отпускание после перетаскивания — не клик по узлу под курсором
   if (to) moveTo(n, to);
 });
+// выделенный текст узла браузер тащит сам (нативный drag) — тогда mousemove не приходят; пока тащим ветку — запрещено
+svg.addEventListener('dragstart', (e) => { if (drag) e.preventDefault(); });
 svg.addEventListener('click', (e) => { if (noClick) { noClick = false; e.stopImmediatePropagation(); } }, true);
 function moveTo(n, { t, where }) {
   const p = parents.get(n); p.children.splice(p.children.indexOf(n), 1);

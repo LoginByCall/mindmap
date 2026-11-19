@@ -129,6 +129,25 @@ try {
   a = await box('Клавиши'); b = await box('Мышь!');
   shown = await dragTo([b[0] + 10, b[1] + b[3] / 2], a[0] + 10, a[1] + a[3] / 2);
   ok(shown[2] === 'none' && await js(`src.value`) === before, 'в своего потомка не переносится');
+  // автопрокрутка: у края полотна оно едет само, вдали от края — стоит; отпускание за краем не ломает перетаскивание
+  b = await box('Мышь!');
+  await js(`getSelection().selectAllChildren(document.querySelector('.mm-t'))`);   // выделенный текст не должен мешать
+  const edge = await js(`(() => { const r = svg.getBoundingClientRect(); return [r.right - 5, r.bottom - 5]; })()`);
+  await mouse('mousePressed', b[0] + 10, b[1] + b[3] / 2);
+  await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', button: 'left', buttons: 1, x: b[0] + 30, y: b[1] + b[3] / 2 });
+  const t1 = await js(`mm.g.attr('transform')`); await sleep(300);
+  ok(await js(`mm.g.attr('transform')`) === t1, 'вдали от края полотно не едет');
+  await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', button: 'left', buttons: 1, x: edge[0], y: edge[1] });
+  const p1 = await js(`d3.zoomTransform(svg)`); await sleep(400); const p2 = await js(`d3.zoomTransform(svg)`);
+  ok(p2.x < p1.x - 20 && p2.y < p1.y - 20, 'у правого нижнего края полотно едет влево-вверх');
+  await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', button: 'left', buttons: 1, x: edge[0] - 200, y: edge[1] - 200 });
+  const p3 = await js(`d3.zoomTransform(svg)`); await sleep(300);
+  ok(await js(`d3.zoomTransform(svg).x`) === p3.x, 'ушёл от края — остановилось');
+  await key('Escape');
+  await mouse('mouseReleased', edge[0] - 200, edge[1] - 200); await sleep(400);
+  ok(await js(`!drag && !document.querySelector('.mm-ghost')`), 'Esc отменяет перетаскивание и прокрутку');
+  await js(`mm.fit()`); await sleep(400);   // вернуть вид для следующих проверок
+
   await key('z', 2); await key('z', 2);
   ok(await js(`src.value.indexOf('## Мышь!') < src.value.indexOf('## Клавиши')`), 'Ctrl+Z возвращает порядок');
 
