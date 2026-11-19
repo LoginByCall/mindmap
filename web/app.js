@@ -11,16 +11,22 @@ const PALETTE = ['#e15759', '#f28e2b', '#edc948', '#59a14f', '#76b7b2', '#4e79a7
 const HELP = `# Mind Map
 
 ## Мышь
-- двойной клик — правка текста
+- двойной клик — правка названия или пункта списка
 - правый клик — меню ветки
-- клик по кружку — свернуть/развернуть
+- клик по кружку — свернуть ветку
 - колесо — масштаб, перетаскивание — сдвиг
 
 ## Клавиши
 - Tab / Enter — дочерняя / соседняя ветка
+- Shift+Enter — пункт в список под узлом
 - F2 — правка, Del — удалить
 - стрелки — навигация, Alt+стрелки — перемещение
 - Ctrl+E — исходник, Ctrl+P — PDF
+
+## Список под узлом
+> - мелкий шрифт под названием
+> - ▾ сворачивает, ▸ разворачивает
+> - в Markdown: «> - пункт»
 `;
 
 let root, file = null, dirty = false, sel = null, clip = null, editing = null;
@@ -46,9 +52,15 @@ mm.handleClick = async (e, d) => {   // клик по кружку: сверну
   commit(false);
 };
 
+// список под названием: мелкий шрифт, ▾/▸ сворачивает; data-note — индекс пункта для правки
+function notesHtml(n) {
+  if (!n.notes?.length) return '';
+  const items = n.notesFold ? '' : '<ul>' + n.notes.map((t, i) => `<li data-note="${i}">${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('') + '</ul>';
+  return `<div class="mm-notes"><span class="mm-nt" data-nt title="Свернуть/развернуть список">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>${items}</div>`;
+}
 function toINode(n, inh) {
   const color = n.color || inh;
-  return { content: html(n.text), children: n.children.map((c) => toINode(c, color)),
+  return { content: `<div class="mm-t">${html(n.text)}</div>` + notesHtml(n), children: n.children.map((c) => toINode(c, color)),
     payload: { ref: n, fold: n.fold && n.children.length ? 1 : 0, color } };
 }
 async function draw(fit) {
@@ -92,8 +104,8 @@ function loadMd(md, f) {
   return draw(true);
 }
 const fromTree = (t, depth = 0) => ({ text: t.text || '', kind: depth < 2 ? 'h' : 'li', color: t.color || undefined,
-  fold: !!t.fold, children: (t.children || []).map((c) => fromTree(c, depth + 1)) });
-const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold, children: n.children.map(toTree) });
+  fold: !!t.fold, ...(t.notes?.length && { notes: t.notes }), children: (t.children || []).map((c) => fromTree(c, depth + 1)) });
+const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold, notes: n.notes || [], children: n.children.map(toTree) });
 const loadFile = (r) => loadMd(r.md ?? mdtree.serialize(fromTree(r.tree)), { path: r.path, name: r.name });
 
 // ---------- операции над ветками ----------
@@ -135,6 +147,12 @@ function foldAll(v) {
   (function w(n, top) { if (!top && n.children.length) n.fold = v; n.children.forEach((c) => w(c)); })(root, true);
   commit();
 }
+async function addNote(n, after = (n.notes?.length ?? 0) - 1) {
+  (n.notes ||= []).splice(after + 1, 0, 'Новый пункт'); n.notesFold = false; sel = n;
+  await commit(); startEdit(n, after + 1);
+}
+function removeNote(n, i) { n.notes.splice(i, 1); if (!n.notes.length) delete n.notes; commit(); }
+function toggleNotes(n) { if (n.notes?.length) { n.notesFold = !n.notesFold; commit(); } }
 const copy = (n) => { clip = structuredClone(n); };
 const cut = (n) => { copy(n); remove(n); };
 function paste(n) { if (!clip) return; const c = structuredClone(clip); n.children.push(c); n.fold = false; sel = c; commit(); }
@@ -145,18 +163,22 @@ function pickColor(n) {
 }
 
 // ---------- правка текста прямо на карте ----------
-function startEdit(n) {
+function startEdit(n, ni = null) {   // ni — индекс пункта списка, null — название узла
   const el = findEl(n); if (!el) return;
-  const r = el.querySelector('foreignObject').getBoundingClientRect();
-  editing = n; edit.value = n.text;
+  const r = (el.querySelector(ni == null ? '.mm-t' : `[data-note="${ni}"]`) || el.querySelector('foreignObject')).getBoundingClientRect();
+  editing = { n, ni }; edit.value = ni == null ? n.text : n.notes[ni];
+  edit.classList.toggle('note', ni != null);
   Object.assign(edit.style, { display: 'block', left: r.left - 5 + 'px', top: r.top - 3 + 'px', width: Math.max(r.width + 30, 220) + 'px' });
   autosize(); edit.focus(); edit.select();
 }
 function endEdit(ok) {
   if (!editing) return;
-  const n = editing; editing = null; edit.style.display = 'none';
+  const { n, ni } = editing; editing = null; edit.style.display = 'none';
   const t = edit.value.trim();
-  if (ok && t !== n.text) { n.text = t; delete n.virtual; commit(); }
+  if (!ok) return;
+  if (ni == null) { if (t !== n.text) { n.text = t; delete n.virtual; commit(); } }
+  else if (!t) removeNote(n, ni);   // пустой пункт = удалить
+  else if (t !== n.notes[ni]) { n.notes[ni] = t.replace(/\n/g, ' '); commit(); }
 }
 function autosize() { edit.style.height = 'auto'; edit.style.height = edit.scrollHeight + 2 + 'px'; }
 edit.addEventListener('input', autosize);
@@ -169,12 +191,27 @@ edit.addEventListener('keydown', (e) => {
 
 // ---------- мышь ----------
 const nodeAt = (e) => e.target.closest?.('g.markmap-node')?.__data__.payload.ref;
-svg.addEventListener('click', (e) => { sel = nodeAt(e) || null; highlight(); });
-svg.addEventListener('dblclick', (e) => { const n = nodeAt(e); if (n) { sel = n; highlight(); startEdit(n); } });
+const noteAt = (e) => { const li = e.target.closest?.('[data-note]'); return li ? +li.dataset.note : null; };
+svg.addEventListener('click', (e) => {
+  sel = nodeAt(e) || null;
+  if (sel && e.target.closest('[data-nt]')) toggleNotes(sel); else highlight();
+});
+// capture: markmap глушит всплытие dblclick на тексте узла (foreignObject)
+svg.addEventListener('dblclick', (e) => {
+  const n = nodeAt(e);
+  if (!n || e.target.closest('[data-nt]')) return;
+  sel = n; highlight(); startEdit(n, noteAt(e));
+}, true);
 svg.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  const n = nodeAt(e);
-  if (n) { sel = n; highlight(); showMenu(nodeMenu(n), e); } else showMenu(canvasMenu(), e);
+  const n = nodeAt(e), ni = n && noteAt(e);
+  if (!n) return showMenu(canvasMenu(), e);
+  sel = n; highlight();
+  showMenu(ni == null ? nodeMenu(n) : [
+    { t: 'Изменить пункт', k: 'Двойной клик', f: () => startEdit(n, ni) },
+    { t: 'Добавить пункт ниже', f: () => addNote(n, ni) },
+    { t: 'Удалить пункт', f: () => removeNote(n, ni) },
+    '-', ...nodeMenu(n)], e);
 });
 
 // ---------- контекстное меню ----------
@@ -189,6 +226,8 @@ function nodeMenu(n) {
     { t: 'Добавить дочернюю ветку', k: 'Tab', f: () => addChild(n) },
     { t: 'Добавить соседнюю ветку', k: 'Enter', f: () => addSibling(n), dis: !p },
     { t: 'Переименовать', k: 'F2', f: () => startEdit(n) },
+    { t: 'Добавить пункт в список', k: 'Shift+Enter', f: () => addNote(n) },
+    { t: n.notesFold ? 'Развернуть список' : 'Свернуть список', f: () => toggleNotes(n), dis: !n.notes?.length },
     '-', { t: 'Цвет ветки', dis: true }, { el: sw },
     { t: 'Другой цвет…', f: () => pickColor(n) },
     { t: 'Сбросить цвет', f: () => setColor(n, null), dis: !n.color },
@@ -206,6 +245,15 @@ function nodeMenu(n) {
     { t: 'Удалить ветку', k: 'Del', f: () => remove(n), dis: !p },
   ];
 }
+const fileMenu = () => [
+  { t: 'Новый', k: 'Ctrl+N', f: cmds.new },
+  { t: 'Открыть…', k: 'Ctrl+O', f: cmds.open },
+  '-',
+  { t: 'Сохранить', k: 'Ctrl+S', f: cmds.save },
+  { t: 'Сохранить как…', k: 'Ctrl+Shift+S', f: cmds.saveAs },
+  '-',
+  { t: 'Экспорт в PDF…', k: 'Ctrl+P', f: cmds.pdf },
+];
 const canvasMenu = () => [
   { t: 'Вписать в окно', k: 'Ctrl+0', f: cmds.fit },
   { t: 'Развернуть всё', f: () => foldAll(false) },
@@ -215,7 +263,7 @@ const canvasMenu = () => [
   { t: 'Экспорт в PDF…', k: 'Ctrl+P', f: cmds.pdf },
 ];
 function showMenu(items, e) {
-  menu.replaceChildren();
+  menu.replaceChildren(); menu.dataset.owner = '';
   for (const it of items) {
     if (it === '-') { menu.append(document.createElement('hr')); continue; }
     if (it.el) { menu.append(it.el); continue; }
@@ -233,7 +281,7 @@ function showMenu(items, e) {
 }
 const hideMenu = () => { menu.style.display = 'none'; };
 // capture: d3-zoom на холсте глушит всплытие mousedown
-document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target)) hideMenu(); }, true);
+document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target) && e.target.id !== 'fileBtn') hideMenu(); }, true);
 window.addEventListener('blur', hideMenu);
 
 // ---------- файлы и экспорт ----------
@@ -266,6 +314,11 @@ const cmds = {
   async saveAs() { const p = await bridge.call('save_dialog', { name: file?.name || 'mindmap.md' }); if (p) await write(p); },
   pdf: () => exportPdf(null),
   toggleSrc() { src.classList.toggle('hidden'); $('srcBtn').classList.toggle('on'); if (!src.classList.contains('hidden')) src.focus(); },
+  file() {   // повторный клик по «Файл» закрывает меню
+    if (menu.style.display === 'block' && menu.dataset.owner === 'file') return hideMenu();
+    const r = $('fileBtn').getBoundingClientRect();
+    showMenu(fileMenu(), { clientX: r.left, clientY: r.bottom + 2 }); menu.dataset.owner = 'file';
+  },
   fit: () => mm.fit(),
   undo: undoFn, redo: redoFn,
 };
@@ -284,7 +337,7 @@ document.addEventListener('keydown', (e) => {
   const act = c ? { z: e.shiftKey ? redoFn : undoFn, y: redoFn, c: n && (() => copy(n)), x: n && (() => cut(n)), v: n && (() => paste(n)) }[k]
     : e.altKey ? n && { ArrowUp: () => move(n, -1), ArrowDown: () => move(n, 1), ArrowLeft: () => outdent(n), ArrowRight: () => indent(n) }[e.key]
     : n && {
-      Tab: () => addChild(n), Enter: () => addSibling(n), Delete: () => remove(n), F2: () => startEdit(n), ' ': () => toggle(n),
+      Tab: () => addChild(n), Enter: () => (e.shiftKey ? addNote(n) : addSibling(n)), Delete: () => remove(n), F2: () => startEdit(n), ' ': () => toggle(n),
       ArrowLeft: () => p && go(p), ArrowRight: () => n.children.length && !n.fold && go(n.children[0]),
       ArrowUp: () => p && go(p.children[p.children.indexOf(n) - 1]), ArrowDown: () => p && go(p.children[p.children.indexOf(n) + 1]),
     }[e.key];

@@ -2,13 +2,13 @@
 import mindmap as m
 
 T = {'text': 'Корень & <xml>', 'color': '#e15759', 'fold': False, 'children': [
-    {'text': 'Ветка\nв две строки', 'color': None, 'fold': True, 'children': [
+    {'text': 'Ветка\nв две строки', 'color': None, 'fold': True, 'notes': ['пункт 1', 'пункт & 2'], 'children': [
         {'text': 'лист', 'color': '#4e79a7', 'fold': False, 'children': []}]},
     {'text': 'вторая', 'color': None, 'fold': False, 'children': []}]}
 
 
 def strip(t, color=True, fold=True):
-    return {'text': t['text'], 'color': t.get('color') if color else None,
+    return {'text': t['text'], 'color': t.get('color') if color else None, 'notes': t.get('notes') or [],
             'fold': bool(t.get('fold')) if fold else False,
             'children': [strip(c, color, fold) for c in t['children']]}
 
@@ -19,6 +19,9 @@ assert strip(m.xmind_read(m.xmind_write(T)), color=False) == strip(T, color=Fals
 # Freeplane: текст в richcontent, цвет ветки в <edge>
 fp = b'<map><node><richcontent TYPE="NODE"><html><body><p>Rich</p></body></html></richcontent><edge COLOR="#ff0000"/></node></map>'
 assert m.mm_read(fp)['text'] == 'Rich' and m.mm_read(fp)['color'] == '#ff0000'
+# заметка FreeMind без списка -> пункты по строкам
+fn = b'<map><node TEXT="a"><richcontent TYPE="NOTE"><html><body><p>one</p>\n<p>two</p></body></html></richcontent></node></map>'
+assert m.mm_read(fn)['notes'] == ['one', 'two'], m.mm_read(fn)['notes']
 # OPML с несколькими верхними пунктами -> корень из <title>
 o = m.opml_read(b'<opml><head><title>T</title></head><body><outline text="a"/><outline text="b"/></body></opml>')
 assert o['text'] == 'T' and [c['text'] for c in o['children']] == ['a', 'b']

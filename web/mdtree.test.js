@@ -61,4 +61,33 @@ let deep = { text: 'r', kind: 'h', children: [] }, cur = deep;
 for (let i = 0; i < 8; i++) { const c = { text: 'n' + i, kind: 'h', children: [] }; cur.children.push(c); cur = c; }
 assert.deepStrictEqual(shape(parse(serialize(deep))), shape(deep));
 
+// список под узлом: под заголовком, под пунктом, у вложенного пункта, у виртуального корня
+const nt = parse(`# Корень
+
+## Цели <!-- notes: fold -->
+> - срок: май
+> - бюджет **10**
+
+- Пункт
+  > - заметка
+  - Вложенный
+    > - глубже
+`);
+const goals2 = nt.children[0];
+assert.deepStrictEqual(goals2.notes, ['срок: май', 'бюджет **10**']);
+assert.strictEqual(goals2.notesFold, true);
+assert.deepStrictEqual(goals2.children.map((c) => c.text), ['Пункт']);
+assert.deepStrictEqual(goals2.children[0].notes, ['заметка']);
+assert.deepStrictEqual(goals2.children[0].children[0].notes, ['глубже']);
+const nshape = (n) => [n.text, n.notes || null, !!n.notesFold, n.children.map(nshape)];
+const nmd = serialize(nt);
+assert.deepStrictEqual(nshape(parse(nmd)), nshape(nt));
+assert.strictEqual(serialize(parse(nmd)), nmd);
+const vr = { text: '', kind: 'h', virtual: true, notes: ['n'], children: [{ text: 'a', kind: 'li', children: [] }] };
+assert.deepStrictEqual(nshape(parse(serialize(vr))), nshape(vr));
+// абзац со списком становится пунктом, список не теряется
+const pr = parse('# A\n\nабзац\n');
+pr.children[0].notes = ['x'];
+assert.deepStrictEqual(nshape(parse(serialize(pr))), nshape(pr));
+
 console.log('mdtree: ok');

@@ -24,7 +24,13 @@ def mm_read(data):
             text = ' '.join(''.join(rc.itertext()).split()) if rc is not None else ''
         edge = e.find('edge')
         color = (edge.get('COLOR') if edge is not None else None) or e.get('COLOR')
-        return {'text': text, 'color': color, 'fold': e.get('FOLDED') == 'true',
+        note = e.find("richcontent[@TYPE='NOTE']")
+        notes = []
+        if note is not None:  # заметка FreeMind: пункты <li> или строки текста
+            lis = note.findall('.//li')
+            notes = [' '.join(''.join(li.itertext()).split()) for li in lis] if lis else \
+                [ln.strip() for ln in ''.join(note.itertext()).splitlines() if ln.strip()]
+        return {'text': text, 'color': color, 'fold': e.get('FOLDED') == 'true', 'notes': notes,
                 'children': [conv(c) for c in e.findall('node')]}
     node = ET.fromstring(data).find('node')
     if node is None:
@@ -40,6 +46,11 @@ def mm_write(tree):
             ET.SubElement(e, 'edge', COLOR=n['color'])
         if n.get('fold') and n['children']:
             e.set('FOLDED', 'true')
+        if n.get('notes'):
+            ul = ET.SubElement(ET.SubElement(ET.SubElement(e, 'richcontent', TYPE='NOTE'), 'html'), 'body')
+            ul = ET.SubElement(ul, 'ul')
+            for t in n['notes']:
+                ET.SubElement(ul, 'li').text = t
         for c in n['children']:
             conv(c, e)
     m = ET.Element('map', version='1.0.1')
@@ -52,6 +63,7 @@ def opml_read(data):
     r = ET.fromstring(data)
     def conv(e):
         return {'text': e.get('text', ''), 'color': e.get('color'), 'fold': False,
+                'notes': [ln.strip() for ln in e.get('_note', '').splitlines() if ln.strip()],
                 'children': [conv(c) for c in e.findall('outline')]}
     outs = r.findall('body/outline')
     if len(outs) == 1:
@@ -66,6 +78,8 @@ def opml_write(tree):
         e = ET.SubElement(parent, 'outline', text=n['text'])
         if n.get('color'):
             e.set('color', n['color'])  # нестандартный атрибут, OPML это допускает
+        if n.get('notes'):
+            e.set('_note', '\n'.join(n['notes']))  # соглашение OmniOutliner/Workflowy
         for c in n['children']:
             conv(c, e)
     conv(tree, ET.SubElement(r, 'body'))
@@ -78,7 +92,9 @@ def xmind_read(data):
     if 'content.json' not in z.namelist():
         raise ValueError('Поддерживается XMind 2020+ (content.json); XMind 8 (content.xml) — нет')
     def conv(t):
+        note = t.get('notes', {}).get('plain', {}).get('content', '')
         return {'text': t.get('title', ''), 'color': None, 'fold': t.get('branch') == 'folded',
+                'notes': [ln.strip() for ln in note.splitlines() if ln.strip()],
                 'children': [conv(c) for c in t.get('children', {}).get('attached', [])]}
     return conv(json.loads(z.read('content.json'))[0]['rootTopic'])
 
@@ -86,6 +102,8 @@ def xmind_read(data):
 def xmind_write(tree):
     def conv(n):
         d = {'id': uuid.uuid4().hex, 'class': 'topic', 'title': n['text']}
+        if n.get('notes'):
+            d['notes'] = {'plain': {'content': '\n'.join(n['notes'])}}
         if n['children']:
             d['children'] = {'attached': [conv(c) for c in n['children']]}
             if n.get('fold'):

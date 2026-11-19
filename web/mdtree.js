@@ -1,9 +1,12 @@
-// Markdown <-> дерево. Узел: {text, kind: 'h'|'li'|'p', color?, fold?, children[]}.
+// Markdown <-> дерево. Узел: {text, kind: 'h'|'li'|'p', color?, fold?, notes?: [строки], notesFold?, children[]}.
 // Структуру дают заголовки, пункты списков и абзацы (как в markmap).
 // Цвет ветки хранится комментарием <!-- color: #hex -->, свёртка — штатным <!-- markmap: fold -->.
+// Список под названием узла (notes) — цитата «> - пункт» сразу под узлом, свёрнут — <!-- notes: fold -->.
 (function (exp) {
   const COLOR_RE = /\s*<!--\s*color:\s*([^>]*?)\s*-->/;
   const FOLD_RE = /\s*<!--\s*markmap:\s*fold\s*-->/;
+  const NFOLD_RE = /\s*<!--\s*notes:\s*fold\s*-->/;
+  const QUOTE_RE = /^(\s*)>\s?(.*)$/;
   const H_RE = /^(#{1,6})\s+(.*)$/;
   const LI_RE = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/;
   const FENCE_RE = /^(\s*)(`{3,}|~{3,})/;
@@ -15,6 +18,7 @@
     const c = t.match(COLOR_RE);
     if (c) { n.color = c[1]; t = t.replace(COLOR_RE, ''); }
     if (FOLD_RE.test(t)) { n.fold = true; t = t.replace(FOLD_RE, ''); }
+    if (NFOLD_RE.test(t)) { n.notesFold = true; t = t.replace(NFOLD_RE, ''); }
     n.text = t.trim();
     return n;
   }
@@ -37,7 +41,16 @@
         continue;
       }
       if (!line.trim()) { para = null; continue; }
-      let m = line.match(H_RE);
+      let m = line.match(QUOTE_RE);
+      if (m) {   // пункт списка под узлом: владелец — ближайший менее отступленный пункт, иначе заголовок
+        const ind = indentOf(m[1]);
+        const owner = items.findLast((it) => it.indent < ind)?.node || heads.at(-1);
+        const t = m[2].trim().replace(/^(?:[-*+]|\d+[.)])\s+/, '');
+        if (t) (owner.notes ||= []).push(t);
+        para = null;
+        continue;
+      }
+      m = line.match(H_RE);
       if (m) {
         const level = m[1].length, n = mk(m[2], 'h');
         while (heads.at(-1).level >= level) heads.pop();
@@ -66,9 +79,9 @@
       }
       if (fm) { fence = { node: target, mark: fm[2], indent: ind }; para = null; }
     }
-    const root = top.children.length === 1 && top.children[0].kind !== 'p'
+    const root = top.children.length === 1 && top.children[0].kind !== 'p' && !top.notes
       ? top.children[0]
-      : { text: '', kind: 'h', virtual: true, children: top.children };
+      : { text: '', kind: 'h', virtual: true, children: top.children, ...(top.notes && { notes: top.notes }) };
     if (front) root.front = front;
     strip(root);
     return root;
@@ -81,20 +94,22 @@
     let [first, ...rest] = n.text.split('\n');
     if (n.color) first += ` <!-- color: ${n.color} -->`;
     if (n.fold && n.children.length) first += ' <!-- markmap: fold -->';
+    if (n.notesFold && n.notes?.length) first += ' <!-- notes: fold -->';
     return [first, ...rest].join('\n');
   }
 
   function serialize(root) {
     const out = [];
     const blank = () => { if (out.length && out.at(-1) !== '') out.push(''); };
+    const notes = (n, pad) => (n.notes || []).forEach((t) => out.push(pad + '> - ' + t.replace(/\n/g, ' ')));
     // hl — уровень заголовка-родителя, ld — глубина в списке (-1 вне списка)
     function emit(n, hl, ld, forceH) {
       let kind = n.kind;
-      if (ld >= 0 || (kind === 'p' && n.children.length)) kind = 'li';
+      if (ld >= 0 || (kind === 'p' && (n.children.length || n.notes?.length))) kind = 'li';
       if (forceH) kind = 'h';
       if (kind === 'h' && hl >= 6) kind = 'li';
       if (kind === 'h') {
-        blank(); out.push('#'.repeat(hl + 1) + ' ' + lineText(n).replace(/\n/g, ' ')); out.push('');
+        blank(); out.push('#'.repeat(hl + 1) + ' ' + lineText(n).replace(/\n/g, ' ')); notes(n, ''); out.push('');
         kids(n, hl + 1, -1);
       } else if (kind === 'p') {
         blank(); out.push(lineText(n)); out.push('');
@@ -102,6 +117,7 @@
         const pad = '  '.repeat(Math.max(ld, 0));
         const [first, ...rest] = lineText(n).split('\n');
         out.push(pad + '- ' + first, ...rest.map((l) => (l ? pad + '  ' + l : '')));
+        notes(n, pad + '  ');
         n.children.forEach((c) => emit(c, hl, Math.max(ld, 0) + 1, false));
       }
     }
@@ -116,7 +132,7 @@
       }
     }
     if (root.front) out.push(root.front, '');
-    if (root.virtual) kids(root, 0, -1); else emit(root, 0, -1, false);
+    if (root.virtual) { notes(root, ''); blank(); kids(root, 0, -1); } else emit(root, 0, -1, false);
     while (out.length && out.at(-1) === '') out.pop();
     return out.join('\n') + '\n';
   }

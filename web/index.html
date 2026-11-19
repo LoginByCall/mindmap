@@ -30,26 +30,28 @@
   #menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
   #menu .sw { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 14px; }
   #menu .sw span { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 1px solid #0002; }
-  #menu .sw span:hover { transform: scale(1.2); }
+  #menu .sw span:hover { outline: 2px solid var(--fg); }
   #edit { position: fixed; display: none; z-index: 5; font: 300 16px/20px sans-serif; padding: 2px 4px; resize: none;
           border: 1px solid #4e79a7; border-radius: 3px; outline: none; background: var(--bg); color: var(--fg); }
+  /* без opacity: в WebKitGTK она выносит содержимое foreignObject в слой, и тот рисуется не на месте */
+  .mm-notes { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: 1px; }
+  .mm-notes ul { margin: 0; padding-left: 16px; }
+  .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
+  .mm-nt:hover { color: var(--fg); }
+  #edit.note { font-size: 12px; line-height: 16px; }
   #print { display: none; }
   @media print {
     @page { margin: 0; }
     html, body { height: 100%; overflow: hidden; background: #fff; }
     body > * { display: none !important; }
     #print { display: block !important; }
-    #print svg { display: block; --markmap-text-color: #333; --markmap-circle-open-bg: #fff; }
+    #print svg { display: block; --markmap-text-color: #333; --markmap-circle-open-bg: #fff; --muted: #777; }
   }
 </style>
 </head>
 <body>
 <div id="bar">
-  <button data-cmd="new" title="Ctrl+N">Новый</button>
-  <button data-cmd="open" title="Ctrl+O">Открыть</button>
-  <button data-cmd="save" title="Ctrl+S">Сохранить</button>
-  <button data-cmd="saveAs" title="Ctrl+Shift+S">Сохранить как…</button>
-  <button data-cmd="pdf" title="Ctrl+P">PDF</button>
+  <button data-cmd="file" id="fileBtn">Файл ▾</button>
   <span class="sep"></span>
   <button data-cmd="toggleSrc" id="srcBtn" title="Ctrl+E">Исходник</button>
   <button data-cmd="fit" title="Ctrl+0">Вписать</button>
