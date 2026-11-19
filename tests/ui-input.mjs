@@ -65,6 +65,9 @@ try {
     const rs = [...document.querySelectorAll('.mm-t, .mm-notes')].map((e) => e.getBoundingClientRect());
     return rs.every((a, i) => rs.every((b, j) => j <= i || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5 || a.right <= b.left + 0.5 || b.right <= a.left + 0.5));
   })()`), 'названия и списки не налезают друг на друга');
+  // список не вылезает за foreignObject: иначе WebKit при сдвиге полотна оставляет следы
+  const notesInside = `[...document.querySelectorAll('.mm-notes')].every((n) => n.getBoundingClientRect().bottom <= n.closest('foreignObject').getBoundingClientRect().bottom + 0.5)`;
+  ok(await js(notesInside), 'список внутри границ foreignObject');
 
   // двойной клик по списку -> одно поле, строка = пункт; Enter — новая строка, Ctrl+Enter — готово
   p = await at('Список под узлом', '.mm-notes li');
@@ -90,6 +93,7 @@ try {
   ok(await js(`src.value.includes('## Список под узлом <!-- notes: fold -->')`) && !(await hasLi('Список под узлом')), 'клик по ▾ сворачивает список');
   await click(...(await at('Список под узлом', '[data-nt]')));
   ok(await js(`!src.value.includes('Список под узлом <!-- notes: fold -->')`) && await hasLi('Список под узлом'), 'клик по ▸ разворачивает список');
+  ok(await js(notesInside), 'после перерисовки список по-прежнему внутри foreignObject');
 
   // правый клик по списку -> «Изменить список»; клик мимо — закрывает
   await click(...(await at('Список под узлом', '.mm-notes li')), 1, 'right');

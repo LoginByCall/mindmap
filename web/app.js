@@ -47,14 +47,19 @@ const bridge = window.bridge = {
 const mm = new Markmap(svg, { duration: 250, color: (d) => d.payload?.color || defaultOptions.color(d) });
 mm.svg.on('dblclick.zoom', null);
 // список под чертой: место в раскладке — по полной высоте узла (название + список),
-// а «якорь» (черта, кружок, связи, высота foreignObject) — по низу названия; список свисает ниже черты
+// а «якорь» (черта, кружок, связи) — по низу названия; список под чертой.
+// foreignObject растягиваем на полную высоту: WebKit при сдвиге полотна перерисовывает только
+// его границы, и вылезающий за них список оставлял следы на старом месте
 const relayout = mm._relayout.bind(mm);
 mm._relayout = () => {
   relayout();
+  const full = [];
   mm.g.selectAll('g.markmap-node > foreignObject').each(function (d) {
     const t = this.querySelector('.mm-notes') && this.querySelector('.mm-t');
-    if (t) d.state.rect.height = t.offsetHeight;
+    if (t) { full.push([this, d.state.size[1]]); d.state.rect.height = t.offsetHeight; }
   });
+  // renderData ставит height = rect.height синхронно сразу после _relayout — перебиваем следом
+  queueMicrotask(() => full.forEach(([fo, h]) => fo.setAttribute('height', h)));
 };
 mm.handleClick = async (e, d) => {   // клик по кружку: свернуть/развернуть и записать в модель
   await mm.toggleNode(d, e.ctrlKey);
