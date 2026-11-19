@@ -232,7 +232,9 @@ function showMenu(items, e) {
   menu.style.top = Math.max(0, Math.min(e.clientY, innerHeight - r.height - 4)) + 'px';
 }
 const hideMenu = () => { menu.style.display = 'none'; };
-document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target)) hideMenu(); });
+// capture: d3-zoom на холсте глушит всплытие mousedown
+document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target)) hideMenu(); }, true);
+window.addEventListener('blur', hideMenu);
 
 // ---------- файлы и экспорт ----------
 const confirmDiscard = async () => !dirty || await bridge.call('confirm', { text: 'Несохранённые изменения будут потеряны. Продолжить?' });

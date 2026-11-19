@@ -50,6 +50,7 @@ EOF
 ```sh
 python3 test_formats.py      # .mm / .opml / .xmind, запись на диск
 node web/mdtree.test.js      # Markdown ⇄ дерево
+python3 tests/test_ui.py     # интерфейс в headless Chrome
 ```
 
 Отладка: `MINDMAP_DEBUG=1 ./mindmap.py` — инспектор WebKit и `console.log` в stdout.
