@@ -8,6 +8,52 @@ tf.md.validateLink = (u) => !/^\s*(javascript|vbscript|data):/i.test(u) || /^\s*
 const html = (t) => (t.includes('\n') ? tf.md.render(t) : tf.md.renderInline(t)) || '&nbsp;';
 
 const $ = (id) => document.getElementById(id);
+// учебная карта: задания-флажки, каждое выполняется прямо здесь
+const TUTORIAL = `# Обучение
+> Сделайте задание и кликните по его ☐. Карта учебная: правьте смело, Ctrl+Z всё вернёт.
+> В поле правки видна разметка: «[ ] » в начале строки — это и есть флажок.
+
+## 1. Правка текста
+- [ ] Двойной клик по этой строке — правка прямо в узле, Enter — готово
+- [ ] Кликните по ветке, чтобы выделить, и нажмите F2 — тоже правка
+
+## 2. Новые ветки
+- [ ] Выделите «Песочница» и нажмите Tab — появится дочерняя ветка, введите текст и Enter
+- [ ] Выделите новую ветку и нажмите Enter — появится соседняя в режиме правки; Enter ещё раз, затем Delete — удалить её
+- Песочница
+
+## 3. Порядок веток
+- [ ] Схватите «Третий» мышью и бросьте на верхнюю треть «Первого» — встанет перед ним
+- [ ] Выделите «Второй» и нажмите Alt+↑ / Alt+↓ — то же с клавиатуры
+- Первый
+- Второй
+- Третий
+
+## 4. Список и заметка под веткой
+- [ ] Выделите «Покупки» и нажмите Shift+Enter, напишите пункты по строке, Ctrl+Enter — готово
+- [ ] Правый клик по «Покупки» → «Добавить заметку»
+- Покупки
+
+## 5. Флажки и нумерация
+- [ ] Правый клик по «Шаги» → «Добавить флажок»
+- [ ] Правый клик по «Шаги» → «Ветки: нумерация» — пункты станут 1, 2
+- Шаги
+  - раз
+  - два
+
+## 6. Ссылки
+- [ ] Клик по [ссылке на раздел 1](#1-правка-текста) — карта перейдёт к ветке
+- [ ] [Сайт markmap](https://markmap.js.org) — откроется в браузере
+- [ ] Бросьте файл из файлового менеджера на «Песочница» — появится ветка-ссылка
+
+## 7. Исходник Markdown
+- [ ] Нажмите Ctrl+E — рядом откроется Markdown; поменяйте строку там — карта обновится
+- [ ] Ещё раз Ctrl+E — скрыть
+
+## 8. Сохранение и справка
+- [ ] Ctrl+S — сохранить карту (спросит имя), Ctrl+P — экспорт в PDF
+- [ ] F1 или «?» — справка: все клавиши и синтаксис
+`;
 const src = $('src'), svg = $('map'), menu = $('menu');
 const PALETTE = ['#e15759', '#f28e2b', '#edc948', '#59a14f', '#76b7b2', '#4e79a7', '#b07aa1', '#ff9da7', '#9c755f', '#555555'];
 const HELP = `# Mind Map
@@ -24,6 +70,7 @@ const HELP = `# Mind Map
 - F2 — правка, Del — удалить
 - стрелки — навигация, Alt+стрелки — перемещение
 - Ctrl+E — исходник, Ctrl+P — PDF
+- F1 — справка, «Файл → Обучение» — учебная карта
 
 ## Список под узлом
 > - мелкий шрифт под названием
@@ -242,7 +289,7 @@ function endEdit(ok) {
 }
 svg.addEventListener('focusout', (e) => { if (e.target === editing?.box) endEdit(true); });
 svg.addEventListener('keydown', (e) => {
-  if (!editing) return;
+  if (!editing || e.key === 'F1') return;   // F1 — справка: правку завершит toggleHelp
   e.stopPropagation();
   // название: Enter — готово, Shift+Enter — перенос; список: Enter — новый пункт, Ctrl+Enter — готово
   const done = e.key === 'Enter' && (editing.list ? e.ctrlKey || e.metaKey : !e.shiftKey);
@@ -313,6 +360,7 @@ svg.addEventListener('click', (e) => {
 });
 // capture: markmap глушит всплытие dblclick на тексте узла (foreignObject)
 svg.addEventListener('dblclick', (e) => {
+  if (performance.now() - helpClosed < 600) return;   // двойной клик мимо справки: первый закрыл её, второй — не правка
   const n = nodeAt(e);
   if (!n || e.target.closest('[data-nt], [data-cb], a') || editing?.box.contains(e.target)) return;   // в поле — выделение слова
   sel = n; highlight(); startEdit(n, inNotes(e));
@@ -385,7 +433,9 @@ document.addEventListener('mouseup', () => {
 });
 // выделенный текст узла браузер тащит сам (нативный drag) — тогда mousemove не приходят; пока тащим ветку — запрещено
 svg.addEventListener('dragstart', (e) => { if (drag) e.preventDefault(); });
-svg.addEventListener('click', (e) => { if (noClick) { noClick = false; e.stopImmediatePropagation(); } }, true);
+svg.addEventListener('click', (e) => {
+  if (noClick || performance.now() - helpClosed < 600) { noClick = false; e.stopImmediatePropagation(); }
+}, true);
 function moveTo(n, { t, where }) {
   const p = parents.get(n); p.children.splice(p.children.indexOf(n), 1);
   if (where === 'in') {
@@ -432,6 +482,9 @@ function nodeMenu(n) {
   ];
 }
 const fileMenu = () => [
+  { t: 'Справка', k: 'F1', f: cmds.help },
+  { t: 'Обучение', f: cmds.tutorial },
+  '-',
   { t: 'Новый', k: 'Ctrl+N', f: cmds.new },
   { t: 'Открыть…', k: 'Ctrl+O', f: cmds.open },
   '-',
@@ -509,14 +562,33 @@ const cmds = {
     const r = $('fileBtn').getBoundingClientRect();
     showMenu(fileMenu(), { clientX: r.left, clientY: r.bottom + 2 }); menu.dataset.owner = 'file';
   },
+  help: () => toggleHelp(),
+  async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
   quit: () => bridge.call('quit'),   // закрытие окна в GTK спросит про несохранённое
   fit: () => mm.fit(),
   undo: undoFn, redo: redoFn,
 };
-document.querySelectorAll('#bar button').forEach((b) => { b.onclick = () => cmds[b.dataset.cmd](); });
+document.querySelectorAll('#bar button, #help [data-cmd]').forEach((b) => { b.onclick = () => cmds[b.dataset.cmd](); });
+
+// ---------- справка (F1) ----------
+const help = $('help');
+let helpClosed = 0;
+function toggleHelp(v = help.hidden) {
+  help.hidden = !v;
+  $('bar').inert = $('main').inert = v;   // фокус (Tab) не уходит под затемнение
+  if (v) { hideMenu(); if (editing) endEdit(true); help.querySelector('.hbox').focus(); }
+}
+// клик мимо окна; второй клик двойного (если он был) карта не получает — ни правки, ни смены выделения
+help.addEventListener('click', (e) => { if (e.target === help) { toggleHelp(false); helpClosed = performance.now(); } });
+help.querySelector('.x').onclick = () => toggleHelp(false);
 
 // ---------- клавиатура ----------
 document.addEventListener('keydown', (e) => {
+  if (!help.hidden) {   // справка поверх: клавиши карты не действуют
+    if (e.key === 'Escape' || e.key === 'F1') { e.preventDefault(); toggleHelp(false); }
+    return;
+  }
+  if (e.key === 'F1') { e.preventDefault(); return toggleHelp(true); }
   if (e.key === 'Escape') { hideMenu(); endDrag(); }
   const c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (c) {

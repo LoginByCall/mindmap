@@ -56,6 +56,21 @@
   .markmap-foreign img { max-width: 240px; max-height: 180px; vertical-align: middle; }
   .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
   .mm-nt:hover { color: var(--fg); }
+  #helpBtn { margin-left: auto; font-weight: 600; min-width: 28px; }
+  #help { position: fixed; inset: 0; z-index: 20; background: #0006; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #help[hidden] { display: none; }
+  #help .hbox { position: relative; width: 100%; max-width: 780px; max-height: 100%; overflow: auto; overflow-x: hidden; outline: none;
+                background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 18px 24px; box-shadow: 0 8px 32px #0005; }
+  #help h2 { margin: 0 0 4px; font-size: 18px; }
+  #help h3 { margin: 18px 0 6px; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+  #help table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  #help td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  #help td:first-child { width: 38%; color: var(--muted); }
+  #help kbd, #help code { font: 12px ui-monospace, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; white-space: pre-wrap; }
+  #help .x { position: sticky; float: right; top: 0; z-index: 1; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%;
+             background: var(--bg); color: var(--fg); font-size: 18px; cursor: pointer; line-height: 1; }
+  #help .tut { margin-top: 6px; padding: 5px 12px; border: 1px solid #4e79a7; background: none; color: var(--fg); border-radius: 4px; cursor: pointer; font: inherit; }
+  #help p { margin: 4px 0; }
   #print { display: none; }
   @media print {
     @page { margin: 0; }
@@ -74,12 +89,93 @@
   <button data-cmd="fit" title="Ctrl+0">Вписать</button>
   <button data-cmd="undo" title="Ctrl+Z">↶</button>
   <button data-cmd="redo" title="Ctrl+Y">↷</button>
+  <button data-cmd="help" id="helpBtn" title="Справка (F1)">?</button>
 </div>
 <div id="main">
   <textarea id="src" class="hidden" spellcheck="false"></textarea>
   <svg id="map"></svg>
 </div>
 <div id="menu"></div>
+<div id="help" hidden>
+<div class="hbox" tabindex="-1" role="dialog" aria-label="Справка">
+<button class="x" title="Закрыть (Esc)">×</button>
+<h2>Справка</h2>
+<p>Карта хранится как обычный Markdown: заголовки и пункты списков — ветки. Правьте на карте или в исходнике (<kbd>Ctrl+E</kbd>), обе стороны синхронны.</p>
+<button class="tut" data-cmd="tutorial">Пройти обучение — учебная карта с заданиями</button>
+
+<h3>Мышь</h3>
+<table>
+<tr><td>Двойной клик по названию</td><td>правка названия прямо в узле</td></tr>
+<tr><td>Двойной клик по списку или заметке</td><td>правка списка (строка = пункт, «1. » в первой строке — нумерованный) или заметки; то же — правый клик → «Изменить список» / «Изменить заметку»</td></tr>
+<tr><td>Клик по ветке</td><td>выделить</td></tr>
+<tr><td>Правый клик по ветке / по пустому месту</td><td>меню ветки / меню карты</td></tr>
+<tr><td>Клик по кружку</td><td>свернуть или развернуть ветку; <kbd>Ctrl</kbd>+клик — со всеми вложенными</td></tr>
+<tr><td>Тащить ветку за название</td><td>корень не тащится; на верхнюю треть другой ветки — вставить перед ней, на нижнюю — после, на середину — сделать дочерней; у края окна полотно прокручивается само</td></tr>
+<tr><td>Тащить пустое место</td><td>сдвинуть полотно</td></tr>
+<tr><td>Колесо</td><td>масштаб</td></tr>
+<tr><td>Клик по ▾ / ▸ у списка</td><td>свернуть или развернуть список под узлом</td></tr>
+<tr><td>Клик по ☐ / ☑</td><td>отметить флажок или снять отметку</td></tr>
+<tr><td>Клик по ссылке</td><td>сайт — в браузере; файл или папка — показать в файловом менеджере; другая карта — открыть здесь; ссылка на ветку — перейти к ней</td></tr>
+<tr><td>Бросить файл или ссылку на ветку</td><td>добавить дочернюю ветку-ссылку (картинка — с превью)</td></tr>
+</table>
+
+<h3>Клавиши на карте</h3>
+<table>
+<tr><td><kbd>Tab</kbd></td><td>новая дочерняя ветка</td></tr>
+<tr><td><kbd>Enter</kbd></td><td>новая соседняя ветка (на корне — дочерняя)</td></tr>
+<tr><td><kbd>Shift+Enter</kbd></td><td>список под узлом</td></tr>
+<tr><td><kbd>F2</kbd></td><td>правка названия</td></tr>
+<tr><td><kbd>Delete</kbd></td><td>удалить ветку (корень не удаляется)</td></tr>
+<tr><td><kbd>Пробел</kbd></td><td>свернуть или развернуть ветку</td></tr>
+<tr><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>к родителю / к первой дочерней / к соседу выше / ниже</td></tr>
+<tr><td><kbd>Alt+↑</kbd> <kbd>Alt+↓</kbd></td><td>переместить ветку выше / ниже</td></tr>
+<tr><td><kbd>Alt+←</kbd> <kbd>Alt+→</kbd></td><td>повысить / понизить уровень</td></tr>
+<tr><td><kbd>Ctrl+C</kbd> <kbd>Ctrl+X</kbd> <kbd>Ctrl+V</kbd></td><td>копировать / вырезать / вставить ветку (вставляется дочерней)</td></tr>
+<tr><td><kbd>Ctrl+Z</kbd>, <kbd>Ctrl+Y</kbd> или <kbd>Ctrl+Shift+Z</kbd></td><td>отменить / повторить</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>закрыть меню, отменить перетаскивание</td></tr>
+</table>
+
+<h3>Клавиши при правке текста</h3>
+<table>
+<tr><td><kbd>Enter</kbd></td><td>название — готово; в списке и заметке — новая строка</td></tr>
+<tr><td><kbd>Shift+Enter</kbd></td><td>перенос строки в названии</td></tr>
+<tr><td><kbd>Ctrl+Enter</kbd></td><td>список или заметка — готово</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>отменить правку</td></tr>
+<tr><td>Клик мимо</td><td>сохранить правку</td></tr>
+</table>
+
+<h3>Файл и вид</h3>
+<table>
+<tr><td><kbd>Ctrl+N</kbd> / <kbd>Ctrl+O</kbd></td><td>новая карта / открыть (.md, .mm, .opml, .xmind)</td></tr>
+<tr><td><kbd>Ctrl+S</kbd> / <kbd>Ctrl+Shift+S</kbd></td><td>сохранить / сохранить как</td></tr>
+<tr><td><kbd>Ctrl+P</kbd></td><td>экспорт в PDF</td></tr>
+<tr><td><kbd>Ctrl+E</kbd></td><td>показать или скрыть исходник Markdown</td></tr>
+<tr><td><kbd>Ctrl+0</kbd></td><td>вписать карту в окно</td></tr>
+<tr><td><kbd>F1</kbd></td><td>эта справка</td></tr>
+<tr><td><kbd>Ctrl+Q</kbd></td><td>выход (спросит про несохранённое)</td></tr>
+</table>
+<p>Меню ветки: цвет, свернуть, перемещение, копирование, «Добавить флажок», «Добавить заметку», «Ветки: нумерация», «Список: нумерация». Меню карты: развернуть или свернуть всё.</p>
+
+<h3>Markdown</h3>
+<table>
+<tr><td><code># Заголовок</code>, <code>## Подзаголовок</code></td><td>корень и ветки по уровням</td></tr>
+<tr><td><code>- пункт</code> (или <code>* пункт</code>, <code>+ пункт</code>), вложенный — с отступом</td><td>ветки внутри заголовка</td></tr>
+<tr><td>абзац текста</td><td>тоже ветка</td></tr>
+<tr><td><code>1. пункт</code></td><td>нумерованные ветки (CommonMark: <code>1.</code> или <code>1)</code>, первый номер сохраняется; буквенных списков в Markdown нет)</td></tr>
+<tr><td><code>&gt; текст</code> сразу под веткой</td><td>заметка мелким шрифтом</td></tr>
+<tr><td><code>&gt; - пункт</code> (<code>&gt; 1. пункт</code>)</td><td>список под узлом, маркированный (нумерованный)</td></tr>
+<tr><td><code>- [ ] дело</code>, <code>- [x] сделано</code></td><td>флажок</td></tr>
+<tr><td><code>[текст](https://…)</code>, <code>&lt;https://…&gt;</code></td><td>ссылка на сайт</td></tr>
+<tr><td><code>[смета](./доки/смета.pdf)</code>, <code>[папка](~/Документы)</code></td><td>ссылка на файл или папку; относительный путь — от папки карты</td></tr>
+<tr><td><code>[сеть](сеть.md)</code></td><td>ссылка на другую карту</td></tr>
+<tr><td><code>[см. выше](#название-ветки)</code></td><td>ссылка на ветку: название строчными буквами, знаки препинания опускаются, пробелы — дефисы («1. Правка текста» → <code>#1-правка-текста</code>)</td></tr>
+<tr><td><code>![](фото.jpg)</code></td><td>картинка в узле</td></tr>
+<tr><td><code>**жирный**</code>, <code>*курсив*</code>, <code>`код`</code>, <code>~~зачёркнутый~~</code></td><td>оформление текста</td></tr>
+<tr><td><code>&lt;!-- color: #e15759 --&gt;</code></td><td>цвет ветки (ставится из меню)</td></tr>
+<tr><td><code>&lt;!-- markmap: fold --&gt;</code>, <code>&lt;!-- notes: fold --&gt;</code></td><td>ветка или список под узлом свёрнуты</td></tr>
+</table>
+</div>
+</div>
 <div id="print"></div>
 <script src="vendor/d3.min.js"></script>
 <script src="vendor/markmap-lib.js"></script>

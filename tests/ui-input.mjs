@@ -194,9 +194,68 @@ try {
   // меню «Файл»: открыть, закрыть повторным кликом
   const fb = await js(`(() => { const r = fileBtn.getBoundingClientRect(); return [r.x + 10, r.y + 10]; })()`);
   await click(...fb);
-  ok(await js(`menu.style.display === 'block' && ['Новый', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…', 'Выход'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
+  ok(await js(`menu.style.display === 'block' && ['Справка', 'Обучение', 'Новый', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…', 'Выход'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
   await click(...fb);
   ok(await js(`menu.style.display === 'none'`), 'повторный клик по «Файл» закрывает меню');
+
+  // справка: F1, «?», Esc, клик мимо; клавиши карты при открытой справке не действуют
+  const md0 = await js(`src.value`);
+  await click(...(await at('Мышь!', '.mm-t')));
+  await cdp('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'F1', code: 'F1', windowsVirtualKeyCode: 112 });
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'F1', code: 'F1', windowsVirtualKeyCode: 112 }); await sleep(300);
+  ok(await js(`!help.hidden && document.activeElement === help.querySelector('.hbox')`), 'F1 открывает справку');
+  await cdp('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Delete', code: 'Delete', windowsVirtualKeyCode: 46 });
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Delete', code: 'Delete', windowsVirtualKeyCode: 46 }); await sleep(300);
+  ok(await js(`src.value`) === md0 && await js(`sel?.text`) === 'Мышь!', 'Delete при открытой справке ветку не трогает');
+  await cdp('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(300);
+  ok(await js(`help.hidden && src.value === ${JSON.stringify(md0)} && undo.length > 0`), 'Esc закрывает справку, карта и история целы');
+  const hb = await js(`(() => { const r = helpBtn.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+  await click(...hb);
+  ok(await js(`!help.hidden`), 'кнопка «?» открывает справку');
+  await click(5, 600);
+  ok(await js(`help.hidden`), 'клик мимо окна закрывает справку');
+  // регрессии приёмки: фокус заперт в справке; F1 из правки; двойной клик мимо справки не открывает правку
+  const press = async (key, code, vk) => { await cdp('Input.dispatchKeyEvent', { type: 'rawKeyDown', key, code, windowsVirtualKeyCode: vk });
+    await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk }); await sleep(200); };
+  await click(...hb);
+  const u0 = await js(`undo.length`);
+  for (let i = 0; i < 8; i++) await press('Tab', 'Tab', 9);
+  await press('Enter', 'Enter', 13);
+  ok(await js(`help.contains(document.activeElement) || document.activeElement === document.body`) && await js(`undo.length`) === u0,
+    'Tab не уводит фокус на панель под справкой, Enter там ничего не делает');
+  await press('Escape', 'Escape', 27);
+  ok(await js(`help.hidden && !bar.inert && !document.querySelector('#main').inert`), 'после закрытия панель и карта снова доступны');
+  await click(...(await at('Мышь!', '.mm-t')), 2);
+  await press('F1', 'F1', 112);
+  ok(await js(`!help.hidden && !editing`), 'F1 во время правки завершает её и открывает справку');
+  const rootAt = await at('Mind Map', '.mm-t');
+  ok(rootAt[0] < (await js(`help.querySelector('.hbox').getBoundingClientRect().left`)), 'корень виден слева от окна справки');
+  await click(...rootAt, 2);
+  ok(await js(`help.hidden && !editing && sel?.text === 'Мышь!'`), 'двойной клик мимо справки закрывает её, не открывает правку и не меняет выделение');
+  await click(...hb); await press('Escape', 'Escape', 27);
+  await click(...(await at('Мышь!', '.mm-t')), 2);
+  ok(await js(`editing?.n.text === 'Мышь!'`), 'сразу после Esc двойной клик по ветке открывает правку');
+  await press('Escape', 'Escape', 27);
+
+  // сверка: каждая клавиша из обработчиков есть в справке
+  const keys = ['Tab', 'Enter', 'Shift+Enter', 'Ctrl+Enter', 'F2', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
+    'Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z', 'Esc', 'Ctrl+N', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+P', 'Ctrl+E', 'Ctrl+0', 'F1', 'Ctrl+Q'];
+  const missing = await js(`${JSON.stringify(keys)}.filter((k) => ![...help.querySelectorAll('kbd')].some((e) => e.textContent === k))`);
+  ok(!missing.length, 'в справке есть все клавиши' + (missing.length ? ': нет ' + missing.join(', ') : ''));
+
+  // обучение: из справки, с вопросом о несохранённом; карта не файл
+  await js(`window.calls = []; bridge.call = async (cmd, a) => (calls.push([cmd, a]), cmd === 'confirm' ? true : null)`);
+  await click(...hb);
+  await click(...(await js(`(() => { const r = help.querySelector('.tut').getBoundingClientRect(); return [r.x + 20, r.y + r.height / 2]; })()`)));
+  await sleep(800);
+  ok(await js(`help.hidden && root.text === 'Обучение' && file === null && calls.some(([c]) => c === 'confirm')`), 'кнопка в справке открывает обучение, спросив о несохранённом');
+  ok(await js(`src.value.split('- [ ] ').length - 1 >= 8`), 'в обучении не меньше 8 заданий-флажков');
+  await click(...(await js(`(() => { const a = [...document.querySelectorAll('.mm-t a')].find((a) => a.textContent === 'ссылке на раздел 1');
+    const r = a.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`)));
+  ok(await js(`sel?.text === '1. Правка текста'`), 'ссылка-якорь в обучении ведёт к разделу 1');
+  await js(`cmds.save()`); await sleep(300);
+  ok(await js(`calls.some(([c]) => c === 'save_dialog') && !calls.some(([c]) => c === 'save')`), '«Сохранить» в обучении спрашивает имя');
 } catch (e) { console.log('FAIL ' + e.stack); fails++; }
 chrome.kill();
 await sleep(300);
