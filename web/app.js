@@ -6,7 +6,7 @@ const tf = new Transformer(builtInPlugins.filter((p) => !/katex|hljs/.test(p.nam
 const html = (t) => (t.includes('\n') ? tf.md.render(t) : tf.md.renderInline(t)) || '&nbsp;';
 
 const $ = (id) => document.getElementById(id);
-const src = $('src'), svg = $('map'), menu = $('menu'), edit = $('edit');
+const src = $('src'), svg = $('map'), menu = $('menu');
 const PALETTE = ['#e15759', '#f28e2b', '#edc948', '#59a14f', '#76b7b2', '#4e79a7', '#b07aa1', '#ff9da7', '#9c755f', '#555555'];
 const HELP = `# Mind Map
 
@@ -173,35 +173,43 @@ function pickColor(n) {
 }
 
 // ---------- правка текста прямо на карте ----------
+// редактируется сам элемент узла (contenteditable): шрифт, масштаб и сдвиг полотна — как у карты
 function startEdit(n, list = false) {   // list — весь список под узлом одним полем (строка = пункт), иначе название
   const el = findEl(n); if (!el) return;
-  const t = el.querySelector('.mm-t') || el.querySelector('foreignObject'), nb = el.querySelector('.mm-notes');
-  let r = (list && nb ? nb : t).getBoundingClientRect();
-  if (list && !nb) r = { left: r.left, top: r.bottom + 8, width: r.width };   // списка ещё нет — поле под чертой
-  editing = { n, list }; edit.value = list ? (n.notes || []).join('\n') : n.text;
-  edit.classList.toggle('note', list);
-  edit.placeholder = list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
-  Object.assign(edit.style, { display: 'block', left: r.left - 5 + 'px', top: r.top - 3 + 'px', width: Math.max(r.width + 30, list ? 280 : 220) + 'px' });
-  autosize(); edit.focus();
-  if (list) edit.setSelectionRange(edit.value.length, edit.value.length); else edit.select();
+  let box = el.querySelector(list ? '.mm-notes' : '.mm-t'), created = false;
+  if (!box) {   // списка ещё нет — пустое поле под чертой
+    box = Object.assign(document.createElement('div'), { className: 'mm-notes' });
+    el.querySelector('.mm-t').after(box); created = true;
+  }
+  editing = { n, list, box, created, html: box.innerHTML };
+  box.textContent = list ? (n.notes || []).join('\n') : n.text;
+  box.dataset.ph = list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
+  box.classList.add('mm-edit');
+  box.contentEditable = 'plaintext-only';
+  box.onmousedown = (e) => e.stopPropagation();   // не отдавать d3-zoom: иначе мышью не поставить каретку
+  box.focus();
+  const r = document.createRange(); r.selectNodeContents(box); if (list) r.collapse(false);
+  getSelection().removeAllRanges(); getSelection().addRange(r);
 }
 function endEdit(ok) {
   if (!editing) return;
-  const { n, list } = editing; editing = null; edit.style.display = 'none';
+  const { n, list, box, created, html } = editing; editing = null;
+  const v = box.innerText;
+  box.removeAttribute('contenteditable'); box.classList.remove('mm-edit'); box.onmousedown = null;
+  if (created) box.remove(); else box.innerHTML = html;   // вид — из модели; изменения придут через commit
   if (!ok) return;
-  if (!list) { const t = edit.value.trim(); if (t !== n.text) { n.text = t; delete n.virtual; commit(); } return; }
-  const items = edit.value.split('\n').map((l) => l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, '')).filter(Boolean);
+  if (!list) { const t = v.trim(); if (t !== n.text) { n.text = t; delete n.virtual; commit(); } return; }
+  const items = v.split('\n').map((l) => l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, '')).filter(Boolean);
   if (items.join('\n') === (n.notes || []).join('\n')) return;
   if (items.length) { n.notes = items; n.notesFold = false; } else { delete n.notes; delete n.notesFold; }   // пустое поле = убрать список
   commit();
 }
-function autosize() { edit.style.height = 'auto'; edit.style.height = edit.scrollHeight + 2 + 'px'; }
-edit.addEventListener('input', autosize);
-edit.addEventListener('blur', () => endEdit(true));
-edit.addEventListener('keydown', (e) => {
+svg.addEventListener('focusout', (e) => { if (e.target === editing?.box) endEdit(true); });
+svg.addEventListener('keydown', (e) => {
+  if (!editing) return;
   e.stopPropagation();
   // название: Enter — готово, Shift+Enter — перенос; список: Enter — новый пункт, Ctrl+Enter — готово
-  const done = e.key === 'Enter' && (editing?.list ? e.ctrlKey || e.metaKey : !e.shiftKey);
+  const done = e.key === 'Enter' && (editing.list ? e.ctrlKey || e.metaKey : !e.shiftKey);
   if (done) { e.preventDefault(); endEdit(true); }
   else if (e.key === 'Escape') endEdit(false);
 });
@@ -216,7 +224,7 @@ svg.addEventListener('click', (e) => {
 // capture: markmap глушит всплытие dblclick на тексте узла (foreignObject)
 svg.addEventListener('dblclick', (e) => {
   const n = nodeAt(e);
-  if (!n || e.target.closest('[data-nt]')) return;
+  if (!n || e.target.closest('[data-nt]') || editing?.box.contains(e.target)) return;   // в поле — выделение слова
   sel = n; highlight(); startEdit(n, inNotes(e));
 }, true);
 svg.addEventListener('contextmenu', (e) => {

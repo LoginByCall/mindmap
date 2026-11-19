@@ -31,8 +31,10 @@
   #menu .sw { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 14px; }
   #menu .sw span { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 1px solid #0002; }
   #menu .sw span:hover { outline: 2px solid var(--fg); }
-  #edit { position: fixed; display: none; z-index: 5; font: 300 16px/20px sans-serif; padding: 2px 4px; resize: none;
-          border: 1px solid #4e79a7; border-radius: 3px; outline: none; background: var(--bg); color: var(--fg); }
+  /* правка прямо в узле: тот же шрифт и масштаб, только рамка и каретка */
+  .mm-edit { white-space: pre-wrap; outline: 1px solid #4e79a7; outline-offset: 2px; border-radius: 2px;
+             cursor: text; user-select: text; -webkit-user-select: text; min-width: 4em; }
+  .mm-edit:empty::before { content: attr(data-ph); color: var(--muted); }
   /* без opacity: в WebKitGTK она выносит содержимое foreignObject в слой, и тот рисуется не на месте */
   .mm-notes { font-size: 12px; line-height: 16px; color: var(--muted); padding-top: 5px; }
   /* страховка на кадр до растяжки foreignObject на полную высоту (app.js, _relayout) */
@@ -40,7 +42,6 @@
   .mm-notes ul { margin: 0; padding-left: 16px; }
   .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
   .mm-nt:hover { color: var(--fg); }
-  #edit.note { font-size: 12px; line-height: 16px; }
   #print { display: none; }
   @media print {
     @page { margin: 0; }
@@ -65,7 +66,6 @@
   <svg id="map"></svg>
 </div>
 <div id="menu"></div>
-<textarea id="edit" rows="1"></textarea>
 <div id="print"></div>
 <script src="vendor/d3.min.js"></script>
 <script src="vendor/markmap-lib.js"></script>

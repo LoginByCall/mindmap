@@ -52,8 +52,12 @@ try {
   // двойной клик по названию узла -> правка названия
   let p = await at('Мышь', '.mm-t');
   await click(...p, 2);
-  ok(await js(`edit.style.display === 'block' && edit.value === 'Мышь' && !edit.classList.contains('note')`), 'двойной клик по названию открывает правку');
-  await cdp('Input.insertText', { text: 'Мышь!' }); await js(`edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))`); await sleep(500);
+  ok(await js(`!!editing && editing.box.innerText === 'Мышь' && !editing.list`), 'двойной клик по названию открывает правку');
+  ok(await js(`editing.box.closest('g.markmap-node') && !document.querySelector('textarea:not(#src)')`), 'правка — в самом узле, без поля поверх');
+  await click(...(await at('Мышь', '.mm-t')));
+  ok(await js(`!!editing && document.activeElement === editing.box`), 'клик внутри поля не закрывает правку');
+  await js(`getSelection().selectAllChildren(editing.box)`);
+  await cdp('Input.insertText', { text: 'Мышь!' }); await key('Enter'); await sleep(500);
   ok(await js(`src.value.includes('## Мышь!')`), 'новое название попало в исходник');
 
   // список под чертой: верх списка ниже черты узла; названия и списки разных узлов не пересекаются
@@ -73,18 +77,18 @@ try {
   p = await at('Список под узлом', '.mm-notes li');
   ok(!!p, 'список под узлом отрисован');
   await click(...p, 2);
-  ok(await js(`edit.style.display === 'block' && edit.classList.contains('note') && edit.value.split('\\n').length === 3 && edit.value.startsWith('мелкий шрифт')`), 'двойной клик по списку открывает весь список одним полем');
+  ok(await js(`!!editing && editing.list && editing.box.innerText.split('\\n').length === 3 && editing.box.innerText.startsWith('мелкий шрифт')`), 'двойной клик по списку открывает весь список одним полем');
   await key('Enter');
-  ok(await js(`edit.style.display === 'block' && edit.value.split('\\n').length === 4`), 'Enter в поле списка добавляет строку, а не закрывает');
+  ok(await js(`!!editing && editing.box.innerText.replace(/\\n$/, '').split('\\n').length === 4`), 'Enter в поле списка добавляет строку, а не закрывает');
   await cdp('Input.insertText', { text: '- новый пункт' });
   await key('Enter', 2);
-  ok(await js(`edit.style.display === 'none' && src.value.includes('> - в Markdown: «> - пункт»\\n> - новый пункт')`), 'Ctrl+Enter сохраняет список, маркер «- » срезан');
+  ok(await js(`!editing && src.value.includes('> - в Markdown: «> - пункт»\\n> - новый пункт')`), 'Ctrl+Enter сохраняет список, маркер «- » срезан');
 
   // Shift+Enter на узле без списка -> пустое поле под чертой, пустые строки отбрасываются
   await click(...(await at('Клавиши', '.mm-t')));
   await key('Enter', 8);
-  ok(await js(`edit.style.display === 'block' && edit.value === '' && edit.classList.contains('note')`), 'Shift+Enter открывает новый список');
-  await js(`edit.value = 'раз\\n\\n два '`);
+  ok(await js(`!!editing && editing.box.innerText === '' && editing.list`), 'Shift+Enter открывает новый список');
+  await js(`editing.box.textContent = 'раз\\n\\n два '`);
   await key('Enter', 2);
   ok(await js(`src.value.includes('## Клавиши\\n> - раз\\n> - два\\n')`), 'новый список сохранён без пустых строк');
 

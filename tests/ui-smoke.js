@@ -20,14 +20,15 @@ const log = (...a) => console.log('SMOKE', ...a);
     ok(src.value.includes('## Мышь <!-- color: #e15759 -->'), 'color applied to source');
     // Tab -> новая дочерняя, ввод текста, Enter
     key('Tab'); await sleep(800);
-    ok(edit.style.display === 'block', 'inline editor opened');
-    edit.value = 'Новый **пункт**'; edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await sleep(400);
+    ok(!!editing && editing.box.isContentEditable, 'inline editor opened');
+    editing.box.textContent = 'Новый **пункт**'; editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await sleep(400);
     ok(src.value.includes('- Новый **пункт**'), 'child added via graph');
     ok(!!elOf('Новый **пункт**').querySelector('strong'), 'markdown rendered in node');
     // Enter -> соседняя, Esc отменяет переименование
     key('Enter'); await sleep(500);
-    edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
+    editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
     ok(src.value.includes('- Новая ветка'), 'sibling added');
+    ok(elOf('Новая ветка').querySelector('.mm-t').textContent === 'Новая ветка' && !svg.querySelector('[contenteditable]'), 'Esc restores node view');
     // Del удаляет, Ctrl+Z возвращает
     key('Delete'); await sleep(300);
     ok(!src.value.includes('Новая ветка'), 'deleted');
