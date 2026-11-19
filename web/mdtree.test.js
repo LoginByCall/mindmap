@@ -102,4 +102,18 @@ assert.ok(nbmd.includes('## B\n> строка 1\n> строка 2\n> - пунк�
 assert.strictEqual(serialize(parse(nbmd)), nbmd);
 assert.strictEqual(parse('> только заметка\n\n- a\n').note, 'только заметка');   // у виртуального корня
 
+// нумерованные списки (CommonMark): номер первого пункта сохраняется, вложенное — под колонкой текста
+const ol = parse('# A\n\n3. три\n4. четыре\n   - вложенный\n   > 1. заметка\n   > 2. ещё\n- B\n  1) раз\n');
+assert.strictEqual(ol.ol, 3);
+assert.deepStrictEqual(ol.children.map((c) => c.text), ['три', 'четыре', 'B']);
+assert.strictEqual(ol.children[1].notesOl, 1);
+assert.strictEqual(ol.children[2].ol, 1);
+const olmd = serialize(ol);
+assert.ok(olmd.includes('3. три\n4. четыре\n   > 1. заметка\n   > 2. ещё\n   - вложенный\n5. B\n   1. раз\n'), olmd);
+assert.strictEqual(serialize(parse(olmd)), olmd);
+const ten = { text: 'A', kind: 'h', ol: 9, children: [{ text: 'девять', kind: 'li', children: [] },
+  { text: 'десять', kind: 'li', children: [{ text: 'x', kind: 'li', children: [] }] }] };
+assert.ok(serialize(ten).includes('9. девять\n10. десять\n    - x\n'), serialize(ten));
+assert.ok(serialize(parse('# A\n\n- a\n  - b\n')).includes('- a\n  - b\n'), 'маркированный — как раньше');
+
 console.log('mdtree: ok');

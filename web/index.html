@@ -42,7 +42,9 @@
   /* внешний div markmap шириной 9999px (--markmap-max-width): без этого ловит клики по соседям справа */
   #map .markmap-foreign > div { pointer-events: none; }
   #map .markmap-foreign > div > div { pointer-events: auto; }
-  .mm-notes ul { margin: 0; padding-left: 16px; }
+  .mm-notes ul, .mm-notes ol { margin: 0; padding-left: 16px; }
+  .mm-notes ol { padding-left: 22px; }
+  .mm-num { color: var(--muted); font-variant-numeric: tabular-nums; }
   .mm-para { max-width: 24em; padding-bottom: 2px; }
   .mm-cb { cursor: pointer; user-select: none; }
   .mm-drop { position: fixed; display: none; pointer-events: none; z-index: 6; border: 2px solid #4e79a7; border-radius: 3px; }

@@ -20,7 +20,7 @@ const HELP = `# Mind Map
 
 ## Клавиши
 - Tab / Enter — дочерняя / соседняя ветка
-- Shift+Enter — список под узлом (строка = пункт, Ctrl+Enter — готово)
+- Shift+Enter — список под узлом (строка = пункт, «1. » в начале — нумерованный)
 - F2 — правка, Del — удалить
 - стрелки — навигация, Alt+стрелки — перемещение
 - Ctrl+E — исходник, Ctrl+P — PDF
@@ -81,19 +81,19 @@ function notesHtml(n) {
   if (!n.notes?.length && !n.note) return '';
   const para = n.note ? `<div class="mm-para">${html(n.note)}</div>` : '';
   const items = !n.notes?.length ? '' : `<div class="mm-items"><span class="mm-nt" data-nt title="Свернуть/развернуть список">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>`
-    + (n.notesFold ? '' : '<ul>' + n.notes.map((t) => `<li>${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('') + '</ul>') + '</div>';
+    + (n.notesFold ? '' : (n.notesOl ? `<ol start="${n.notesOl}">` : '<ul>') + n.notes.map((t) => `<li>${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('')
+      + (n.notesOl ? '</ol>' : '</ul>')) + '</div>';
   return `<div class="mm-notes">${para}${items}</div>`;
 }
 const CB_RE = /^\[([ xX])\]\s+/;   // флажок: «- [ ] дело», «- [x] сделано»
-function titleHtml(n) {
-  const cb = n.text.match(CB_RE);
-  if (!cb) return `<div class="mm-t">${html(n.text)}</div>`;
-  const on = cb[1] !== ' ';
-  return `<div class="mm-t${on ? ' mm-done' : ''}"><span class="mm-cb" data-cb title="Отметить">${on ? '☑' : '☐'}</span> ${html(n.text.slice(cb[0].length))}</div>`;
+function titleHtml(n, num) {   // num — номер в нумерованном списке родителя
+  const cb = n.text.match(CB_RE), on = cb && cb[1] !== ' ';
+  return `<div class="mm-t${on ? ' mm-done' : ''}">` + (num ? `<span class="mm-num">${num}.</span> ` : '')
+    + (cb ? `<span class="mm-cb" data-cb title="Отметить">${on ? '☑' : '☐'}</span> ${html(n.text.slice(cb[0].length))}` : html(n.text)) + '</div>';
 }
-function toINode(n, inh) {
+function toINode(n, inh, num) {
   const color = n.color || inh;
-  return { content: titleHtml(n) + notesHtml(n), children: n.children.map((c) => toINode(c, color)),
+  return { content: titleHtml(n, num) + notesHtml(n), children: n.children.map((c, i) => toINode(c, color, n.ol && n.ol + i)),
     payload: { ref: n, fold: n.fold && n.children.length ? 1 : 0, color } };
 }
 async function draw(fit) {
@@ -182,6 +182,8 @@ function foldAll(v) {
   (function w(n, top) { if (!top && n.children.length) n.fold = v; n.children.forEach((c) => w(c)); })(root, true);
   commit();
 }
+// нумеровать можно только пункты списка: заголовки и абзацы среди дочерних становятся пунктами
+function setOl(n) { if (n.ol) delete n.ol; else { n.ol = 1; n.children.forEach((c) => { c.kind = 'li'; }); } commit(); }
 function toggleCheck(n) { n.text = n.text.replace(CB_RE, (m, c) => `[${c === ' ' ? 'x' : ' '}] `); commit(); }
 function setCheck(n, on) { n.text = on ? '[ ] ' + n.text : n.text.replace(CB_RE, ''); commit(); }
 function toggleNotes(n) { if (n.notes?.length) { n.notesFold = !n.notesFold; commit(); } }
@@ -208,7 +210,7 @@ function startEdit(n, list = false) {   // list: true — весь список 
     if (cls === 'mm-para') host.prepend(box); else host.append(box);
   }
   editing = { n, list, box, created, html: box.innerHTML };
-  box.textContent = list === 'note' ? n.note || '' : list ? (n.notes || []).join('\n') : n.text;
+  box.textContent = list === 'note' ? n.note || '' : list ? (n.notes || []).map((t, i) => (n.notesOl ? `${n.notesOl + i}. ` : '') + t).join('\n') : n.text;
   box.dataset.ph = list === 'note' ? 'Заметка · Ctrl+Enter — готово' : list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
   box.classList.add('mm-edit');
   box.contentEditable = 'plaintext-only';
@@ -231,9 +233,11 @@ function endEdit(ok) {
     if (t) n.note = t; else delete n.note;
     return commit();
   }
-  const items = lines.map((l) => l.replace(/^(?:[-*+]|\d+[.)])\s+/, '')).filter(Boolean);
-  if (items.join('\n') === (n.notes || []).join('\n')) return;
-  if (items.length) { n.notes = items; n.notesFold = false; } else { delete n.notes; delete n.notesFold; }   // пустое поле = убрать список
+  const items = lines.map((l) => l.replace(/^(?:[-*+]|\d{1,9}[.)])\s+/, '')).filter(Boolean);
+  const ol = lines[0]?.match(/^(\d{1,9})[.)]\s/), olv = ol ? +ol[1] : undefined;   // «1. » в первой строке — нумерованный
+  if (items.join('\n') === (n.notes || []).join('\n') && olv === n.notesOl) return;
+  if (olv) n.notesOl = olv; else delete n.notesOl;
+  if (items.length) { n.notes = items; n.notesFold = false; } else { delete n.notes; delete n.notesFold; delete n.notesOl; }   // пустое поле = убрать список
   commit();
 }
 svg.addEventListener('focusout', (e) => { if (e.target === editing?.box) endEdit(true); });
@@ -390,6 +394,8 @@ function nodeMenu(n) {
     { t: 'Переименовать', k: 'F2', f: () => startEdit(n) },
     { t: n.notes?.length ? 'Изменить список' : 'Добавить список', k: 'Shift+Enter', f: () => startEdit(n, true) },
     { t: n.notesFold ? 'Развернуть список' : 'Свернуть список', f: () => toggleNotes(n), dis: !n.notes?.length },
+    { t: n.notesOl ? 'Список: маркеры' : 'Список: нумерация', f: () => { if (n.notesOl) delete n.notesOl; else n.notesOl = 1; commit(); }, dis: !n.notes?.length },
+    { t: n.ol ? 'Ветки: маркеры' : 'Ветки: нумерация', f: () => setOl(n), dis: !n.children.length },
     { t: n.note ? 'Изменить заметку' : 'Добавить заметку', f: () => startEdit(n, 'note') },
     { t: CB_RE.test(n.text) ? 'Убрать флажок' : 'Добавить флажок', f: () => setCheck(n, !CB_RE.test(n.text)) },
     '-', { t: 'Цвет ветки', dis: true }, { el: sw },

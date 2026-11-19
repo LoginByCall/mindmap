@@ -132,6 +132,19 @@ try {
   await key('z', 2); await key('z', 2);
   ok(await js(`src.value.indexOf('## Мышь!') < src.value.indexOf('## Клавиши')`), 'Ctrl+Z возвращает порядок');
 
+  // нумерация (CommonMark «1.»): меню ветки, номера в карте; список под узлом — «1. » в первой строке
+  const menuItem = (t) => js(`(() => { const e = [...menu.querySelectorAll('.it')].find((e) => e.firstChild.textContent === ${JSON.stringify(t)});
+    const r = e.getBoundingClientRect(); return [r.x + 20, r.y + r.height / 2]; })()`);
+  await click(...(await at('Мышь!', '.mm-t')), 1, 'right');
+  await click(...(await menuItem('Ветки: нумерация')));
+  ok(await js(`src.value.includes('## Мышь!\\n\\n1. двойной клик') && src.value.includes('\\n2. правый клик')`), 'нумерация веток пишется в Markdown как «1.»');
+  ok(await js(`[...document.querySelectorAll('.mm-num')].map((e) => e.textContent).slice(0, 2).join() === '1.,2.'`), 'номера видны в карте');
+  await click(...(await at('Список под узлом', '.mm-notes li')), 2);
+  await js(`getSelection().selectAllChildren(editing.box)`);
+  await cdp('Input.insertText', { text: '1. первый' }); await key('Enter'); await cdp('Input.insertText', { text: 'второй' });
+  await key('Enter', 2);
+  ok(await js(`src.value.includes('## Список под узлом\\n> 1. первый\\n> 2. второй\\n') && !!document.querySelector('.mm-notes ol')`), '«1. » в первой строке — нумерованный список под узлом');
+
   // флажок: клик по ☐ ставит отметку в исходнике
   await click(...(await at('[ ] флажок — клик ставит отметку', '[data-cb]')));
   ok(await js(`src.value.includes('- [x] флажок — клик ставит отметку')`), 'клик по флажку отмечает');
@@ -156,7 +169,7 @@ try {
   ok(await js(`src.value.includes('## Ссылки и флажки\\n> первая\\n> вторая\\n')`), 'заметка сохранена строками «> »');
 
   // брошенные файлы: ссылка (пробелы — в <>), картинка — ![]
-  await js(`dropUris(['file:///tmp/x%20y.pdf', 'file:///tmp/a.png', 'https://example.org'], root.children[0])`); await sleep(500);
+  await js(`dropUris(['file:///tmp/x%20y.pdf', 'file:///tmp/a.png', 'https://example.org'], root.children.find((c) => c.text === 'Клавиши'))`); await sleep(500);
   ok(await js(`['- [x y.pdf](</tmp/x y.pdf>)', '- ![a.png](/tmp/a.png)', '- <https://example.org>'].every((t) => src.value.includes(t))`), 'брошенные файлы и ссылки стали ветками');
 
   // меню «Файл»: открыть, закрыть повторным кликом
