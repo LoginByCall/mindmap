@@ -105,6 +105,33 @@ try {
   await click(1100, 700);
   ok(await js(`menu.style.display === 'none'`), 'клик мимо закрывает меню');
 
+  // «схватил и тащи»: верхняя треть цели — перед ней, середина — дочерней; полотно при этом не едет
+  const box = (t) => js(`(() => { const g = [...document.querySelectorAll('g.markmap-node')].find((g) => g.__data__.payload.ref.text === ${JSON.stringify(t)});
+    const r = g.querySelector('.mm-t').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()`);
+  async function dragTo(from, x, y) {
+    await mouse('mousePressed', ...from);
+    for (let i = 1; i <= 5; i++) await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', button: 'left', buttons: 1,
+      x: from[0] + (x - from[0]) * i / 5, y: from[1] + (y - from[1]) * i / 5 });
+    const shown = await js(`[document.querySelector('.mm-ghost')?.textContent, mark.className, mark.style.display]`);
+    await mouse('mouseReleased', x, y); await sleep(600);
+    return shown;
+  }
+  const tf0 = await js(`mm.g.attr('transform')`);
+  let a = await box('Клавиши'), b = await box('Мышь!');
+  let shown = await dragTo([a[0] + 10, a[1] + a[3] / 2], b[0] + 10, b[1] + 2);
+  ok(shown[0] === 'Клавиши' && shown[1] === 'mm-drop before' && shown[2] === 'block', 'при перетаскивании видны ветка у курсора и черта «перед»');
+  ok(await js(`src.value.indexOf('## Клавиши') < src.value.indexOf('## Мышь!') && sel?.text === 'Клавиши'`), 'ветка перенесена перед целью и выделена');
+  ok(await js(`mm.g.attr('transform')`) === tf0, 'полотно не сдвинулось');
+  a = await box('Клавиши'); b = await box('Мышь!');
+  await dragTo([a[0] + 10, a[1] + a[3] / 2], b[0] + 10, b[1] + b[3] / 2);
+  ok(await js(`src.value.includes('- Клавиши\\n  > - раз') && parents.get(sel)?.text === 'Мышь!'`), 'на середину цели — стала дочерней, со своим списком');
+  const before = await js(`src.value`);
+  a = await box('Клавиши'); b = await box('Мышь!');
+  shown = await dragTo([b[0] + 10, b[1] + b[3] / 2], a[0] + 10, a[1] + a[3] / 2);
+  ok(shown[2] === 'none' && await js(`src.value`) === before, 'в своего потомка не переносится');
+  await key('z', 2); await key('z', 2);
+  ok(await js(`src.value.indexOf('## Мышь!') < src.value.indexOf('## Клавиши')`), 'Ctrl+Z возвращает порядок');
+
   // флажок: клик по ☐ ставит отметку в исходнике
   await click(...(await at('[ ] флажок — клик ставит отметку', '[data-cb]')));
   ok(await js(`src.value.includes('- [x] флажок — клик ставит отметку')`), 'клик по флажку отмечает');

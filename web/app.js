@@ -16,7 +16,7 @@ const HELP = `# Mind Map
 - двойной клик — правка названия или списка
 - правый клик — меню ветки
 - клик по кружку — свернуть ветку
-- колесо — масштаб, перетаскивание — сдвиг
+- колесо — масштаб; тащить ветку — порядок и уровень, пустое место — сдвиг
 
 ## Клавиши
 - Tab / Enter — дочерняя / соседняя ветка
@@ -322,6 +322,60 @@ svg.addEventListener('contextmenu', (e) => {
   showMenu(w ? [{ t: w === 'note' ? 'Изменить заметку' : 'Изменить список', k: 'Двойной клик', f: () => startEdit(n, w) }, '-', ...nodeMenu(n)] : nodeMenu(n), e);
 });
 
+// ---------- «схватил и тащи»: порядок и уровень веток ----------
+// верхняя треть названия цели — вставить перед ней, нижняя — после, середина — дочерней
+let drag = null, noClick = false;
+const mark = document.body.appendChild(div('mm-drop'));
+svg.addEventListener('mousedown', (e) => {
+  noClick = false;
+  if (e.button !== 0 || editing || !e.target.closest('foreignObject') || e.target.closest('a, [data-nt], [data-cb]')) return;
+  const n = nodeAt(e); if (!n || !parents.get(n)) return;   // корень не таскается — за него двигается полотно
+  e.stopPropagation();   // не отдавать d3-zoom: за ветку тащится ветка, а не полотно
+  drag = { n, x: e.clientX, y: e.clientY };
+}, true);
+function dropAt(e) {
+  const g = document.elementFromPoint(e.clientX, e.clientY)?.closest('g.markmap-node'); if (!g) return null;
+  const t = g.__data__.payload.ref;
+  for (let x = t; x; x = parents.get(x)) if (x === drag.n) return null;   // в себя и в своих потомков нельзя
+  const r = g.querySelector('.mm-t').getBoundingClientRect(), k = (e.clientY - r.top) / r.height;
+  const where = !parents.get(t) ? 'in' : k < 1 / 3 ? 'before' : k > 2 / 3 ? 'after' : 'in';
+  const y = where === 'before' ? r.top - 3 : g.querySelector('foreignObject').getBoundingClientRect().bottom + 1;   // «после» — под списком
+  Object.assign(mark.style, { display: 'block', left: r.left - 4 + 'px', width: r.width + 8 + 'px',
+    top: (where === 'in' ? r.top - 3 : y) + 'px', height: where === 'in' ? r.height + 6 + 'px' : '0' });
+  mark.className = 'mm-drop ' + where;
+  return { t, where };
+}
+function endDrag() { drag?.ghost?.remove(); mark.style.display = 'none'; document.body.classList.remove('dragging'); drag = null; }
+document.addEventListener('mousemove', (e) => {
+  if (!drag) return;
+  if (!(e.buttons & 1)) return endDrag();   // кнопку отпустили за окном
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;   // ещё клик, а не перетаскивание
+    drag.ghost = document.body.appendChild(div('mm-ghost')); drag.ghost.textContent = plain(drag.n.text);
+    document.body.classList.add('dragging');
+  }
+  Object.assign(drag.ghost.style, { left: e.clientX + 12 + 'px', top: e.clientY + 8 + 'px' });
+  drag.to = dropAt(e);
+  if (!drag.to) mark.style.display = 'none';
+});
+document.addEventListener('mouseup', () => {
+  if (!drag) return;
+  const { n, ghost, to } = drag; endDrag();
+  if (!ghost) return;
+  noClick = true;   // отпускание после перетаскивания — не клик по узлу под курсором
+  if (to) moveTo(n, to);
+});
+svg.addEventListener('click', (e) => { if (noClick) { noClick = false; e.stopImmediatePropagation(); } }, true);
+function moveTo(n, { t, where }) {
+  const p = parents.get(n); p.children.splice(p.children.indexOf(n), 1);
+  if (where === 'in') {
+    const sib = t.children[0]; t.children.push(n); t.fold = false; n.kind = sib?.kind || 'li';
+  } else {
+    const q = parents.get(t); q.children.splice(q.children.indexOf(t) + (where === 'after'), 0, n); n.kind = t.kind;
+  }
+  sel = n; commit();   // то же место — commit ничего не запишет
+}
+
 // ---------- контекстное меню ----------
 function nodeMenu(n) {
   const p = parents.get(n), i = p ? p.children.indexOf(n) : -1;
@@ -441,7 +495,7 @@ document.querySelectorAll('#bar button').forEach((b) => { b.onclick = () => cmds
 
 // ---------- клавиатура ----------
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') hideMenu();
+  if (e.key === 'Escape') { hideMenu(); endDrag(); }
   const c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (c) {
     const m = { n: cmds.new, o: cmds.open, s: e.shiftKey ? cmds.saveAs : cmds.save, p: cmds.pdf, q: cmds.quit, e: cmds.toggleSrc, 0: cmds.fit }[k];

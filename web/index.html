@@ -45,6 +45,11 @@
   .mm-notes ul { margin: 0; padding-left: 16px; }
   .mm-para { max-width: 24em; padding-bottom: 2px; }
   .mm-cb { cursor: pointer; user-select: none; }
+  .mm-drop { position: fixed; display: none; pointer-events: none; z-index: 6; border: 2px solid #4e79a7; border-radius: 3px; }
+  .mm-drop.before, .mm-drop.after { border-width: 2px 0 0; border-radius: 0; }
+  .mm-ghost { position: fixed; pointer-events: none; z-index: 7; padding: 2px 8px; font: 13px sans-serif; color: var(--fg);
+              background: var(--bg); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 2px 8px #0003; white-space: nowrap; }
+  body.dragging, body.dragging * { cursor: grabbing !important; }
   .mm-done { text-decoration: line-through; color: var(--muted); }
   .markmap-foreign img { max-width: 240px; max-height: 180px; vertical-align: middle; }
   .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
