@@ -8,6 +8,7 @@ import io
 import json
 import os
 import sys
+import urllib.parse
 import uuid
 import zipfile
 import xml.etree.ElementTree as ET
@@ -145,12 +146,34 @@ def save(path, md, tree):
     return {'path': path, 'name': os.path.basename(path)}
 
 
+def link_target(href, base):
+    """Куда ведёт ссылка из карты: ('web', url) | ('map', путь) | ('show', путь). Относительный путь — от папки карты."""
+    u = urllib.parse.urlsplit(href)
+    if u.scheme in ('http', 'https', 'mailto', 'ftp'):
+        return 'web', href
+    if u.scheme == 'file':
+        p = urllib.parse.unquote(u.path)
+    elif u.scheme:  # javascript:, data: и прочее — не трогаем
+        raise ValueError(f'Неподдерживаемая ссылка: {href}')
+    else:
+        p = os.path.expanduser(urllib.parse.unquote(u.path))
+        if not os.path.isabs(p):
+            if not base:
+                raise ValueError('Относительная ссылка считается от папки карты — сначала сохраните карту')
+            p = os.path.join(os.path.dirname(base), p)
+    p = os.path.normpath(p)
+    if not os.path.exists(p):
+        raise FileNotFoundError(f'Нет такого файла или папки: {p}')
+    return ('map' if os.path.isfile(p) and os.path.splitext(p)[1].lower() in EXTS else 'show'), p
+
+
 # ---------- GUI ----------
 def main():
     import gi
     gi.require_version('Gtk', '3.0')
+    gi.require_version('Gdk', '3.0')
     gi.require_version('WebKit2', '4.1')
-    from gi.repository import GLib, Gtk, WebKit2
+    from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2
 
     here = os.path.dirname(os.path.realpath(__file__))
     args = sys.argv[1:]
@@ -223,6 +246,51 @@ def main():
         op.connect('failed', lambda _op, err: (error(f'Ошибка печати в PDF: {err.message}'), done(None)))
         op.print_()
 
+    def show_in_files(path):
+        # «перейти», а не открыть: файл выделяется в файловом менеджере, ничего не запускается
+        uri = GLib.filename_to_uri(path)
+        try:
+            Gio.bus_get_sync(Gio.BusType.SESSION).call_sync(
+                'org.freedesktop.FileManager1', '/org/freedesktop/FileManager1', 'org.freedesktop.FileManager1',
+                'ShowFolders' if os.path.isdir(path) else 'ShowItems', GLib.Variant('(ass)', ([uri], '')),
+                None, Gio.DBusCallFlags.NONE, 3000)
+        except GLib.Error:  # нет FileManager1 — просто папка
+            Gtk.show_uri_on_window(win, GLib.filename_to_uri(path if os.path.isdir(path) else os.path.dirname(path)), Gdk.CURRENT_TIME)
+
+    def follow(href, base):
+        kind, t = link_target(href, base)
+        if kind == 'web':
+            Gtk.show_uri_on_window(win, t, Gdk.CURRENT_TIME)
+        elif kind == 'show':
+            show_in_files(t)
+        else:
+            return load(t)
+        return None
+
+    page = os.path.join(here, 'web', 'index.html')
+    page_uri = GLib.filename_to_uri(page)
+
+    def on_policy(_view, decision, kind):
+        # страховка: окно никогда не уходит с карты (ссылка мимо JS, брошенный файл)
+        if kind not in (WebKit2.PolicyDecisionType.NAVIGATION_ACTION, WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION):
+            return False
+        uri = decision.get_navigation_action().get_request().get_uri()
+        try:
+            if GLib.filename_from_uri(uri.split('#')[0])[0] == page:
+                return False
+        except GLib.Error:  # не file:
+            pass
+        decision.ignore()
+        if uri.startswith('file:'):
+            view.evaluate_javascript(f'dropUris([{json.dumps(uri)}])', -1, None, None, None, None, None)
+        else:
+            try:
+                follow(uri, None)
+            except Exception as e:
+                error(e)
+        return True
+    view.connect('decide-policy', on_policy)
+
     def reply(mid, val):
         view.evaluate_javascript(f'bridge.reply({mid}, {json.dumps(val, ensure_ascii=False)})', -1, None, None, None, None, None)
 
@@ -246,6 +314,8 @@ def main():
             elif cmd == 'open':
                 p = chooser(Gtk.FileChooserAction.OPEN)
                 val = load(p) if p else None
+            elif cmd == 'link':
+                val = follow(a['href'], a.get('base'))
             elif cmd == 'save_dialog':
                 p = chooser(Gtk.FileChooserAction.SAVE, a.get('name'))
                 if p and os.path.splitext(p)[1].lower() not in EXTS:
@@ -280,7 +350,7 @@ def main():
         return state['dirty'] and not ask('Есть несохранённые изменения. Закрыть без сохранения?')
     win.connect('delete-event', on_close)
     win.connect('destroy', Gtk.main_quit)
-    view.load_uri(GLib.filename_to_uri(os.path.join(here, 'web', 'index.html')))
+    view.load_uri(page_uri)
     win.show_all()
     Gtk.main()
 

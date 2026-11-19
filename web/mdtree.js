@@ -2,6 +2,7 @@
 // Структуру дают заголовки, пункты списков и абзацы (как в markmap).
 // Цвет ветки хранится комментарием <!-- color: #hex -->, свёртка — штатным <!-- markmap: fold -->.
 // Список под названием узла (notes) — цитата «> - пункт» сразу под узлом, свёрнут — <!-- notes: fold -->.
+// Заметка (note, абзац) — строки цитаты без маркера «> текст», в файле перед списком.
 (function (exp) {
   const COLOR_RE = /\s*<!--\s*color:\s*([^>]*?)\s*-->/;
   const FOLD_RE = /\s*<!--\s*markmap:\s*fold\s*-->/;
@@ -42,11 +43,12 @@
       }
       if (!line.trim()) { para = null; continue; }
       let m = line.match(QUOTE_RE);
-      if (m) {   // пункт списка под узлом: владелец — ближайший менее отступленный пункт, иначе заголовок
+      if (m) {   // пункт списка или строка заметки под узлом: владелец — ближайший менее отступленный пункт, иначе заголовок
         const ind = indentOf(m[1]);
         const owner = items.findLast((it) => it.indent < ind)?.node || heads.at(-1);
-        const t = m[2].trim().replace(/^(?:[-*+]|\d+[.)])\s+/, '');
-        if (t) (owner.notes ||= []).push(t);
+        const raw = m[2].trim(), t = raw.replace(/^(?:[-*+]|\d+[.)])\s+/, '');
+        if (t !== raw) (owner.notes ||= []).push(t);
+        else if (t) owner.note = owner.note ? owner.note + '\n' + t : t;
         para = null;
         continue;
       }
@@ -79,9 +81,9 @@
       }
       if (fm) { fence = { node: target, mark: fm[2], indent: ind }; para = null; }
     }
-    const root = top.children.length === 1 && top.children[0].kind !== 'p' && !top.notes
+    const root = top.children.length === 1 && top.children[0].kind !== 'p' && !top.notes && !top.note
       ? top.children[0]
-      : { text: '', kind: 'h', virtual: true, children: top.children, ...(top.notes && { notes: top.notes }) };
+      : { text: '', kind: 'h', virtual: true, children: top.children, ...(top.notes && { notes: top.notes }), ...(top.note && { note: top.note }) };
     if (front) root.front = front;
     strip(root);
     return root;
@@ -101,11 +103,14 @@
   function serialize(root) {
     const out = [];
     const blank = () => { if (out.length && out.at(-1) !== '') out.push(''); };
-    const notes = (n, pad) => (n.notes || []).forEach((t) => out.push(pad + '> - ' + t.replace(/\n/g, ' ')));
+    const notes = (n, pad) => {
+      if (n.note) n.note.split('\n').forEach((t) => out.push(pad + '> ' + t));
+      (n.notes || []).forEach((t) => out.push(pad + '> - ' + t.replace(/\n/g, ' ')));
+    };
     // hl — уровень заголовка-родителя, ld — глубина в списке (-1 вне списка)
     function emit(n, hl, ld, forceH) {
       let kind = n.kind;
-      if (ld >= 0 || (kind === 'p' && (n.children.length || n.notes?.length))) kind = 'li';
+      if (ld >= 0 || (kind === 'p' && (n.children.length || n.notes?.length || n.note))) kind = 'li';
       if (forceH) kind = 'h';
       if (kind === 'h' && hl >= 6) kind = 'li';
       if (kind === 'h') {

@@ -3,6 +3,8 @@
 const { Markmap, Transformer, builtInPlugins, defaultOptions } = window.markmap;
 // ponytail: katex/hljs отключены — они тянут ассеты из CDN, а приложение офлайновое
 const tf = new Transformer(builtInPlugins.filter((p) => !/katex|hljs/.test(p.name || '')));
+// file: разрешаем (ссылки на диск); javascript:/vbscript:/data: — нет, кроме data:image
+tf.md.validateLink = (u) => !/^\s*(javascript|vbscript|data):/i.test(u) || /^\s*data:image\//i.test(u);
 const html = (t) => (t.includes('\n') ? tf.md.render(t) : tf.md.renderInline(t)) || '&nbsp;';
 
 const $ = (id) => document.getElementById(id);
@@ -27,6 +29,13 @@ const HELP = `# Mind Map
 > - мелкий шрифт под названием
 > - ▾ сворачивает, ▸ разворачивает
 > - в Markdown: «> - пункт»
+
+## Ссылки и флажки
+> Заметка под узлом — строки «> текст» в Markdown.
+- [сайт](https://markmap.js.org) — в браузере
+- [папка](~/) — переход в файловый менеджер, [ветка](#мышь) — к узлу
+- файл или ссылку можно бросить на узел
+- [ ] флажок — клик ставит отметку
 `;
 
 let root, file = null, dirty = false, sel = null, clip = null, editing = null;
@@ -67,15 +76,24 @@ mm.handleClick = async (e, d) => {   // клик по кружку: сверну
   commit(false);
 };
 
-// список под названием: мелкий шрифт, ▾/▸ сворачивает
+// под названием мелким шрифтом: заметка (абзац) и список, ▾/▸ сворачивает список
 function notesHtml(n) {
-  if (!n.notes?.length) return '';
-  const items = n.notesFold ? '' : '<ul>' + n.notes.map((t) => `<li>${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('') + '</ul>';
-  return `<div class="mm-notes"><span class="mm-nt" data-nt title="Свернуть/развернуть список">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>${items}</div>`;
+  if (!n.notes?.length && !n.note) return '';
+  const para = n.note ? `<div class="mm-para">${html(n.note)}</div>` : '';
+  const items = !n.notes?.length ? '' : `<div class="mm-items"><span class="mm-nt" data-nt title="Свернуть/развернуть список">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>`
+    + (n.notesFold ? '' : '<ul>' + n.notes.map((t) => `<li>${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('') + '</ul>') + '</div>';
+  return `<div class="mm-notes">${para}${items}</div>`;
+}
+const CB_RE = /^\[([ xX])\]\s+/;   // флажок: «- [ ] дело», «- [x] сделано»
+function titleHtml(n) {
+  const cb = n.text.match(CB_RE);
+  if (!cb) return `<div class="mm-t">${html(n.text)}</div>`;
+  const on = cb[1] !== ' ';
+  return `<div class="mm-t${on ? ' mm-done' : ''}"><span class="mm-cb" data-cb title="Отметить">${on ? '☑' : '☐'}</span> ${html(n.text.slice(cb[0].length))}</div>`;
 }
 function toINode(n, inh) {
   const color = n.color || inh;
-  return { content: `<div class="mm-t">${html(n.text)}</div>` + notesHtml(n), children: n.children.map((c) => toINode(c, color)),
+  return { content: titleHtml(n) + notesHtml(n), children: n.children.map((c) => toINode(c, color)),
     payload: { ref: n, fold: n.fold && n.children.length ? 1 : 0, color } };
 }
 async function draw(fit) {
@@ -94,7 +112,7 @@ const findEl = (n) => { const d = findD(n); return [...svg.querySelectorAll('g.m
 const highlight = () => mm.setHighlight((sel && findD(sel)) || null);
 
 // ---------- состояние и история ----------
-function setDirty(v) { dirty = v; bridge.call('state', { dirty, name: file?.name || 'Без имени' }); }
+function setDirty(v) { dirty = v; setBase(); bridge.call('state', { dirty, name: file?.name || 'Без имени' }); }
 function commit(render = true) {
   const md = mdtree.serialize(root);
   if (md === lastMd) return Promise.resolve();
@@ -120,7 +138,9 @@ function loadMd(md, f) {
 }
 const fromTree = (t, depth = 0) => ({ text: t.text || '', kind: depth < 2 ? 'h' : 'li', color: t.color || undefined,
   fold: !!t.fold, ...(t.notes?.length && { notes: t.notes }), children: (t.children || []).map((c) => fromTree(c, depth + 1)) });
-const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold, notes: n.notes || [], children: n.children.map(toTree) });
+// ponytail: в .mm/.opml/.xmind одно поле заметок — заметка-абзац уходит туда первыми строками списка (без потерь, но без различия)
+const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold,
+  notes: [...(n.note ? n.note.split('\n') : []), ...(n.notes || [])], children: n.children.map(toTree) });
 const loadFile = (r) => loadMd(r.md ?? mdtree.serialize(fromTree(r.tree)), { path: r.path, name: r.name });
 
 // ---------- операции над ветками ----------
@@ -162,6 +182,8 @@ function foldAll(v) {
   (function w(n, top) { if (!top && n.children.length) n.fold = v; n.children.forEach((c) => w(c)); })(root, true);
   commit();
 }
+function toggleCheck(n) { n.text = n.text.replace(CB_RE, (m, c) => `[${c === ' ' ? 'x' : ' '}] `); commit(); }
+function setCheck(n, on) { n.text = on ? '[ ] ' + n.text : n.text.replace(CB_RE, ''); commit(); }
 function toggleNotes(n) { if (n.notes?.length) { n.notesFold = !n.notesFold; commit(); } }
 const copy = (n) => { clip = structuredClone(n); };
 const cut = (n) => { copy(n); remove(n); };
@@ -174,16 +196,20 @@ function pickColor(n) {
 
 // ---------- правка текста прямо на карте ----------
 // редактируется сам элемент узла (contenteditable): шрифт, масштаб и сдвиг полотна — как у карты
-function startEdit(n, list = false) {   // list — весь список под узлом одним полем (строка = пункт), иначе название
+const div = (cls) => Object.assign(document.createElement('div'), { className: cls });
+function startEdit(n, list = false) {   // list: true — весь список одним полем (строка = пункт), 'note' — заметка, иначе название
   const el = findEl(n); if (!el) return;
-  let box = el.querySelector(list ? '.mm-notes' : '.mm-t'), created = false;
-  if (!box) {   // списка ещё нет — пустое поле под чертой
-    box = Object.assign(document.createElement('div'), { className: 'mm-notes' });
-    el.querySelector('.mm-t').after(box); created = true;
+  const cls = list === 'note' ? 'mm-para' : list ? 'mm-items' : 'mm-t';
+  let box = el.querySelector('.' + cls), created = null;
+  if (!box) {   // заметки или списка ещё нет — пустое поле под чертой
+    box = div(cls);
+    let host = el.querySelector('.mm-notes');
+    if (!host) { host = created = div('mm-notes'); el.querySelector('.mm-t').after(host); } else created = box;
+    if (cls === 'mm-para') host.prepend(box); else host.append(box);
   }
   editing = { n, list, box, created, html: box.innerHTML };
-  box.textContent = list ? (n.notes || []).join('\n') : n.text;
-  box.dataset.ph = list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
+  box.textContent = list === 'note' ? n.note || '' : list ? (n.notes || []).join('\n') : n.text;
+  box.dataset.ph = list === 'note' ? 'Заметка · Ctrl+Enter — готово' : list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
   box.classList.add('mm-edit');
   box.contentEditable = 'plaintext-only';
   box.onmousedown = (e) => e.stopPropagation();   // не отдавать d3-zoom: иначе мышью не поставить каретку
@@ -196,10 +222,16 @@ function endEdit(ok) {
   const { n, list, box, created, html } = editing; editing = null;
   const v = box.innerText;
   box.removeAttribute('contenteditable'); box.classList.remove('mm-edit'); box.onmousedown = null;
-  if (created) box.remove(); else box.innerHTML = html;   // вид — из модели; изменения придут через commit
+  if (created) created.remove(); else box.innerHTML = html;   // вид — из модели; изменения придут через commit
   if (!ok) return;
   if (!list) { const t = v.trim(); if (t !== n.text) { n.text = t; delete n.virtual; commit(); } return; }
-  const items = v.split('\n').map((l) => l.trim().replace(/^(?:[-*+]|\d+[.)])\s+/, '')).filter(Boolean);
+  const lines = v.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (list === 'note') {
+    const t = lines.join('\n'); if (t === (n.note || '')) return;
+    if (t) n.note = t; else delete n.note;
+    return commit();
+  }
+  const items = lines.map((l) => l.replace(/^(?:[-*+]|\d+[.)])\s+/, '')).filter(Boolean);
   if (items.join('\n') === (n.notes || []).join('\n')) return;
   if (items.length) { n.notes = items; n.notesFold = false; } else { delete n.notes; delete n.notesFold; }   // пустое поле = убрать список
   commit();
@@ -214,17 +246,71 @@ svg.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') endEdit(false);
 });
 
+// ---------- ссылки, картинки, перетаскивание ----------
+// относительные пути (картинки) — от папки карты
+const base = document.head.appendChild(document.createElement('base'));
+function setBase() {
+  const d = file?.path?.slice(0, file.path.lastIndexOf('/') + 1);
+  if (d) base.href = 'file://' + d.split('/').map(encodeURIComponent).join('/'); else base.removeAttribute('href');
+}
+const slug = (s) => s.toLowerCase().trim().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s+/g, '-');
+const plain = (t) => { const d = div(''); d.innerHTML = html(t.replace(CB_RE, '')); return d.textContent; };
+async function followLink(href) {
+  if (href.startsWith('#')) {   // [текст](#название-узла): переход к узлу, свёрнутые предки раскрываются
+    let id = href.slice(1); try { id = decodeURIComponent(id); } catch { /* как есть */ }
+    let n = null; const s = slug(id);
+    (function w(x) { if (!n && slug(plain(x.text)) === s) n = x; else x.children.forEach(w); })(root);
+    if (!n) return;
+    let p = parents.get(n), open = false;
+    for (; p; p = parents.get(p)) if (p.fold) { p.fold = false; open = true; }
+    if (open) await commit();
+    return go(n);
+  }
+  const r = await bridge.call('link', { href, base: file?.path || null });   // сайт — браузер, файл — файловый менеджер, карта — сюда
+  if (r && await confirmDiscard()) loadFile(r);
+}
+// картинка догрузилась — пересчитать размеры узлов (markmap меряет их при отрисовке)
+let imgTimer;
+svg.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') { clearTimeout(imgTimer); imgTimer = setTimeout(() => mm.renderData(), 50); } }, true);
+// брошенный файл/ссылка -> дочерняя ветка-ссылка; путь внутри папки карты — относительный
+window.dropUris = (uris, n = sel || root) => {
+  const dir = file?.path?.slice(0, file.path.lastIndexOf('/') + 1);
+  for (const u of uris) {
+    let text = `<${u}>`;
+    if (u.startsWith('file:')) {
+      const p = decodeURIComponent(new URL(u).pathname), rel = dir && p.startsWith(dir) ? p.slice(dir.length) : p;
+      const name = (p.split('/').filter(Boolean).pop() || p).replace(/[[\]]/g, '\\$&'), href = /[\s()<>]/.test(rel) ? `<${rel}>` : rel;
+      text = (/\.(png|jpe?g|gif|webp|svg)$/i.test(p) ? '!' : '') + `[${name}](${href})`;
+    }
+    n.children.push({ text, kind: 'li', children: [] });
+  }
+  n.fold = false; sel = n.children.at(-1); commit();
+};
+document.addEventListener('dragover', (e) => { if (e.target !== src) e.preventDefault(); });
+document.addEventListener('drop', (e) => {
+  if (e.target === src) return;
+  e.preventDefault();
+  const uris = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')).split(/\r?\n/)
+    .map((l) => l.trim()).filter((l) => /^[a-z][\w+.-]*:\S+$/i.test(l));
+  if (uris.length) dropUris(uris, nodeAt(e) || root);
+});
+
 // ---------- мышь ----------
 const nodeAt = (e) => e.target.closest?.('g.markmap-node')?.__data__.payload.ref;
-const inNotes = (e) => !!e.target.closest?.('.mm-notes');
+// где внутри узла: false — название, true — список, 'note' — заметка
+const inNotes = (e) => (e.target.closest?.('.mm-para') ? 'note' : !!e.target.closest?.('.mm-notes'));
 svg.addEventListener('click', (e) => {
   sel = nodeAt(e) || null;
-  if (sel && e.target.closest('[data-nt]')) toggleNotes(sel); else highlight();
+  const a = e.target.closest?.('a[href]');
+  if (a) { e.preventDefault(); highlight(); followLink(a.getAttribute('href')); }
+  else if (sel && e.target.closest('[data-nt]')) toggleNotes(sel);
+  else if (sel && e.target.closest('[data-cb]')) toggleCheck(sel);
+  else highlight();
 });
 // capture: markmap глушит всплытие dblclick на тексте узла (foreignObject)
 svg.addEventListener('dblclick', (e) => {
   const n = nodeAt(e);
-  if (!n || e.target.closest('[data-nt]') || editing?.box.contains(e.target)) return;   // в поле — выделение слова
+  if (!n || e.target.closest('[data-nt], [data-cb], a') || editing?.box.contains(e.target)) return;   // в поле — выделение слова
   sel = n; highlight(); startEdit(n, inNotes(e));
 }, true);
 svg.addEventListener('contextmenu', (e) => {
@@ -232,7 +318,8 @@ svg.addEventListener('contextmenu', (e) => {
   const n = nodeAt(e);
   if (!n) return showMenu(canvasMenu(), e);
   sel = n; highlight();
-  showMenu(inNotes(e) ? [{ t: 'Изменить список', k: 'Двойной клик', f: () => startEdit(n, true) }, '-', ...nodeMenu(n)] : nodeMenu(n), e);
+  const w = inNotes(e);
+  showMenu(w ? [{ t: w === 'note' ? 'Изменить заметку' : 'Изменить список', k: 'Двойной клик', f: () => startEdit(n, w) }, '-', ...nodeMenu(n)] : nodeMenu(n), e);
 });
 
 // ---------- контекстное меню ----------
@@ -249,6 +336,8 @@ function nodeMenu(n) {
     { t: 'Переименовать', k: 'F2', f: () => startEdit(n) },
     { t: n.notes?.length ? 'Изменить список' : 'Добавить список', k: 'Shift+Enter', f: () => startEdit(n, true) },
     { t: n.notesFold ? 'Развернуть список' : 'Свернуть список', f: () => toggleNotes(n), dis: !n.notes?.length },
+    { t: n.note ? 'Изменить заметку' : 'Добавить заметку', f: () => startEdit(n, 'note') },
+    { t: CB_RE.test(n.text) ? 'Убрать флажок' : 'Добавить флажок', f: () => setCheck(n, !CB_RE.test(n.text)) },
     '-', { t: 'Цвет ветки', dis: true }, { el: sw },
     { t: 'Другой цвет…', f: () => pickColor(n) },
     { t: 'Сбросить цвет', f: () => setColor(n, null), dis: !n.color },

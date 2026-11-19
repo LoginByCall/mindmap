@@ -105,6 +105,33 @@ try {
   await click(1100, 700);
   ok(await js(`menu.style.display === 'none'`), 'клик мимо закрывает меню');
 
+  // флажок: клик по ☐ ставит отметку в исходнике
+  await click(...(await at('[ ] флажок — клик ставит отметку', '[data-cb]')));
+  ok(await js(`src.value.includes('- [x] флажок — клик ставит отметку')`), 'клик по флажку отмечает');
+
+  // ссылки: окно не уходит с карты; сайт — в мост, якорь — переход к узлу
+  await js(`window.calls = []; const c0 = bridge.call.bind(bridge); bridge.call = (cmd, a) => (calls.push([cmd, a]), c0(cmd, a))`);
+  const link = (t) => js(`(() => { const a = [...document.querySelectorAll('.mm-t a')].find((a) => a.textContent === ${JSON.stringify(t)});
+    const r = a.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+  await click(...(await link('сайт')));
+  ok(await js(`location.href.endsWith('index.html') && calls.some(([c, a]) => c === 'link' && a.href === 'https://markmap.js.org')`), 'ссылка на сайт уходит в мост, окно на месте');
+  const lp = await link('ветка');
+  ok(await js(`document.elementFromPoint(${lp}).closest('a')?.textContent === 'ветка'`), 'соседний узел не перекрывает ссылку (внешний div markmap 9999px)');
+  await click(...lp);
+  ok(await js(`sel && sel.text === 'Мышь!' && location.href.endsWith('index.html')`), 'ссылка #мышь переходит к узлу');
+
+  // заметка: двойной клик — правка абзаца, Ctrl+Enter — в исходник строками «> »
+  await click(...(await at('Ссылки и флажки', '.mm-para')), 2);
+  ok(await js(`editing?.list === 'note' && editing.box.innerText.startsWith('Заметка под узлом')`), 'двойной клик по заметке открывает её правку');
+  await js(`getSelection().selectAllChildren(editing.box)`);
+  await cdp('Input.insertText', { text: 'первая' }); await key('Enter'); await cdp('Input.insertText', { text: 'вторая' });
+  await key('Enter', 2);
+  ok(await js(`src.value.includes('## Ссылки и флажки\\n> первая\\n> вторая\\n')`), 'заметка сохранена строками «> »');
+
+  // брошенные файлы: ссылка (пробелы — в <>), картинка — ![]
+  await js(`dropUris(['file:///tmp/x%20y.pdf', 'file:///tmp/a.png', 'https://example.org'], root.children[0])`); await sleep(500);
+  ok(await js(`['- [x y.pdf](</tmp/x y.pdf>)', '- ![a.png](/tmp/a.png)', '- <https://example.org>'].every((t) => src.value.includes(t))`), 'брошенные файлы и ссылки стали ветками');
+
   // меню «Файл»: открыть, закрыть повторным кликом
   const fb = await js(`(() => { const r = fileBtn.getBoundingClientRect(); return [r.x + 10, r.y + 10]; })()`);
   await click(...fb);

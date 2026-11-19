@@ -39,4 +39,23 @@ with tempfile.TemporaryDirectory() as d:
     m.save(os.path.join(d, 'x.md'), '# Привет\n', T)
     assert m.load(os.path.join(d, 'x.md'))['md'] == '# Привет\n'
     assert sorted(os.listdir(d)) == ['x.md', 'x.mm', 'x.opml', 'x.xmind'], 'нет хвостов .tmp'
+
+# ссылки из карты: сайт / карта / «перейти» к файлу; относительный путь — от папки карты
+import tempfile
+with tempfile.TemporaryDirectory() as d:
+    os.makedirs(os.path.join(d, 'доки'))
+    open(os.path.join(d, 'доки', 'смета 1.pdf'), 'w').close()
+    open(os.path.join(d, 'сеть.md'), 'w').close()
+    base = os.path.join(d, 'карта.md')
+    assert m.link_target('https://a.b/c', None) == ('web', 'https://a.b/c')
+    assert m.link_target('%D1%81%D0%B5%D1%82%D1%8C.md', base) == ('map', os.path.join(d, 'сеть.md'))
+    assert m.link_target('./доки/смета%201.pdf', base) == ('show', os.path.join(d, 'доки', 'смета 1.pdf'))
+    assert m.link_target('file://' + d + '/доки', None) == ('show', os.path.join(d, 'доки'))
+    assert m.link_target('~', None) == ('show', os.path.expanduser('~'))
+    for bad, b in (('javascript:alert(1)', base), ('доки', None), ('нет.pdf', base)):
+        try:
+            m.link_target(bad, b)
+            raise AssertionError(bad)
+        except (ValueError, FileNotFoundError):
+            pass
 print('formats: ok')

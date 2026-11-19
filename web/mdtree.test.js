@@ -90,4 +90,16 @@ const pr = parse('# A\n\nабзац\n');
 pr.children[0].notes = ['x'];
 assert.deepStrictEqual(nshape(parse(serialize(pr))), nshape(pr));
 
+// заметка «> текст» отдельно от списка «> - пункт», порядок в файле: заметка, потом список; флажок — часть текста
+const nb = parse('# A\n\n## B\n> строка 1\n> - пункт\n> строка 2\n\n- [x] сделано\n  > под пунктом\n');
+const b = nb.children[0];
+assert.strictEqual(b.note, 'строка 1\nстрока 2');
+assert.deepStrictEqual(b.notes, ['пункт']);
+assert.strictEqual(b.children[0].text, '[x] сделано');
+assert.strictEqual(b.children[0].note, 'под пунктом');
+const nbmd = serialize(nb);
+assert.ok(nbmd.includes('## B\n> строка 1\n> строка 2\n> - пункт\n'), nbmd);
+assert.strictEqual(serialize(parse(nbmd)), nbmd);
+assert.strictEqual(parse('> только заметка\n\n- a\n').note, 'только заметка');   // у виртуального корня
+
 console.log('mdtree: ok');

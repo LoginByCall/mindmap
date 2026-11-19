@@ -39,7 +39,14 @@
   .mm-notes { font-size: 12px; line-height: 16px; color: var(--muted); padding-top: 5px; }
   /* страховка на кадр до растяжки foreignObject на полную высоту (app.js, _relayout) */
   #map .markmap-foreign, #print .markmap-foreign { overflow: visible; }
+  /* внешний div markmap шириной 9999px (--markmap-max-width): без этого ловит клики по соседям справа */
+  #map .markmap-foreign > div { pointer-events: none; }
+  #map .markmap-foreign > div > div { pointer-events: auto; }
   .mm-notes ul { margin: 0; padding-left: 16px; }
+  .mm-para { max-width: 24em; padding-bottom: 2px; }
+  .mm-cb { cursor: pointer; user-select: none; }
+  .mm-done { text-decoration: line-through; color: var(--muted); }
+  .markmap-foreign img { max-width: 240px; max-height: 180px; vertical-align: middle; }
   .mm-nt { cursor: pointer; user-select: none; font-size: 11px; }
   .mm-nt:hover { color: var(--fg); }
   #print { display: none; }
