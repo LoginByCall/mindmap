@@ -18,8 +18,8 @@ Dependencies (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Installation
 
 ```sh
-./build.sh [version]     # default 0.4.0 → dist/mindmap_0.4.0_all.deb and dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.0_all.deb
+./build.sh [version]     # default 0.4.1 → dist/mindmap_0.4.1_all.deb and dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.1_all.deb
 ```
 
 The package installs the `mindmap` command, a "Mind Map" launcher in the application menu, an icon and file types; apt pulls in the dependencies.

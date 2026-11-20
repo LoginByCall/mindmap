@@ -15,7 +15,7 @@ const MAC = /Mac/.test(navigator.platform);
 const keys = (s) => (MAC ? s.replace(/Ctrl\+Shift\+/g, '⇧⌘').replace(/Ctrl\+?/g, '⌘').replace(/Alt\+/g, '⌥').replace(/Shift\+/g, '⇧') : s);
 document.querySelector('#help .hbox').innerHTML = keys(T['@helpHtml'] || document.querySelector('#help .hbox').innerHTML);
 // о программе — под заголовком справки, без перевода; ссылку оболочка отдаст браузеру (навигация мимо index.html → link)
-const VERSION = '0.4.0', REPO = 'https://github.com/LoginByCall/mindmap';   // версию отсюда берут build.sh и macos/build.sh
+const VERSION = '0.4.1', REPO = 'https://github.com/LoginByCall/mindmap';   // версию отсюда берут build.sh и macos/build.sh
 document.querySelector('#help h2').insertAdjacentHTML('afterend', `<p class="about">Mind Map ${VERSION} · <a href="${REPO}">${REPO.slice(8)}</a></p>`);
 for (const b of document.querySelectorAll('#bar button, #help .hbox')) {
   if (b.title) b.title = keys(t(b.title));

@@ -20,8 +20,8 @@
 ## 安装
 
 ```sh
-./build.sh [版本]     # 默认 0.4.0 → dist/mindmap_0.4.0_all.deb 和 dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.0_all.deb
+./build.sh [版本]     # 默认 0.4.1 → dist/mindmap_0.4.1_all.deb 和 dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.1_all.deb
 ```
 
 软件包会安装 `mindmap` 命令、应用程序菜单中的“Mind Map”启动器、图标和文件类型，依赖由 apt 自动安装。

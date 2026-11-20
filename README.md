@@ -20,8 +20,8 @@
 ## Установка
 
 ```sh
-./build.sh [версия]     # по умолчанию 0.4.0 → dist/mindmap_0.4.0_all.deb и dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.0_all.deb
+./build.sh [версия]     # по умолчанию 0.4.1 → dist/mindmap_0.4.1_all.deb и dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.1_all.deb
 ```
 
 Пакет ставит команду `mindmap`, ярлык «Mind Map» в меню приложений, значок и типы файлов, зависимости подтянет apt.
