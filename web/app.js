@@ -10,9 +10,12 @@ const html = (t) => (t.includes('\n') ? tf.md.render(t) : tf.md.renderInline(t))
 const $ = (id) => document.getElementById(id);
 // перевод: mindmap.py кладёт словарь web/lang/<язык>.json в window.I18N; ключ — русская строка, нет словаря — русский
 const T = window.I18N || {}, t = (s) => T[s] ?? s;
-if (T['@helpHtml']) document.querySelector('#help .hbox').innerHTML = T['@helpHtml'];
+// macOS: в подписях, справке и учебной карте ⌘ ⌥ ⇧ вместо Ctrl Alt Shift (keydown понимает и Ctrl, и ⌘)
+const MAC = /Mac/.test(navigator.platform);
+const keys = (s) => (MAC ? s.replace(/Ctrl\+Shift\+/g, '⇧⌘').replace(/Ctrl\+?/g, '⌘').replace(/Alt\+/g, '⌥').replace(/Shift\+/g, '⇧') : s);
+document.querySelector('#help .hbox').innerHTML = keys(T['@helpHtml'] || document.querySelector('#help .hbox').innerHTML);
 for (const b of document.querySelectorAll('#bar button, #help .hbox')) {
-  if (b.title) b.title = t(b.title);
+  if (b.title) b.title = keys(t(b.title));
   if (b.ariaLabel) b.ariaLabel = t(b.ariaLabel);
   if (b.tagName === 'BUTTON') b.textContent = t(b.textContent);
 }
@@ -115,6 +118,10 @@ window.zoomBy = (f, x, y) => {
   const r = svg.getBoundingClientRect();
   mm.svg.call(mm.zoom.scaleBy, f, x == null ? null : [x - r.left, y - r.top]);
 };
+// WKWebView (macOS): щипок приходит жестом gesture*, а не колесом
+let pinch = 1;
+document.addEventListener('gesturestart', (e) => { e.preventDefault(); pinch = 1; });
+document.addEventListener('gesturechange', (e) => { e.preventDefault(); zoomBy(e.scale / pinch, e.clientX, e.clientY); pinch = e.scale; });
 // список под чертой: место в раскладке — по полной высоте узла (название + список),
 // а «якорь» (черта, кружок, связи) — по низу названия; список под чертой.
 // foreignObject растягиваем на полную высоту: WebKit при сдвиге полотна перерисовывает только
@@ -131,7 +138,7 @@ mm._relayout = () => {
   queueMicrotask(() => full.forEach(([fo, h]) => fo.setAttribute('height', h)));
 };
 mm.handleClick = async (e, d) => {   // клик по кружку: свернуть/развернуть и записать в модель
-  await mm.toggleNode(d, e.ctrlKey);
+  await mm.toggleNode(d, e.ctrlKey || e.metaKey);   // на Mac Ctrl+клик — контекстное меню, поэтому и ⌘
   (function sync(x) { x.payload.ref.fold = !!x.payload.fold; x.children?.forEach(sync); })(mm.state.data);
   commit(false);
 };
@@ -212,6 +219,7 @@ async function loadFile(r) {
   } catch (e) { return bridge.call('error', { text: `${r.name}: ${e.message}` }); }   // карта в редакторе цела
   return loadMd(md, { path: r.path, name: r.name });
 }
+window.openFile = async (r) => { if (await confirmDiscard()) await loadFile(r); };   // файл из Finder при открытом окне
 
 // ---------- операции над ветками ----------
 const newNode = (kind = 'li') => ({ text: t('Новая ветка'), kind, children: [] });
@@ -534,7 +542,7 @@ function showMenu(items, e) {
     const d = document.createElement('div');
     d.className = 'it' + (it.dis ? ' dis' : '');
     d.append(Object.assign(document.createElement('span'), { textContent: it.t }),
-      Object.assign(document.createElement('kbd'), { textContent: it.k || '' }));
+      Object.assign(document.createElement('kbd'), { textContent: keys(it.k || '') }));
     d.onclick = () => { hideMenu(); it.f(); };
     menu.append(d);
   }
@@ -585,7 +593,7 @@ const cmds = {
     showMenu(fileMenu(), { clientX: r.left, clientY: r.bottom + 2 }); menu.dataset.owner = 'file';
   },
   help: () => toggleHelp(),
-  async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(T['@tutorial'] || TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
+  async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(keys(T['@tutorial'] || TUTORIAL), null); } },   // не файл: «Сохранить» спросит имя
   quit: () => bridge.call('quit'),   // закрытие окна в оболочке спросит про несохранённое
   fit: () => mm.fit(),
   zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8),
@@ -635,6 +643,6 @@ function go(n) { if (!n) return; sel = n; highlight(); const d = findD(n); if (d
 // ---------- старт ----------
 (async () => {
   const init = await bridge.call('ready');
-  if (init?.file) await loadFile(init.file); else await loadMd(T['@help'] || HELP, null);
+  if (init?.file) await loadFile(init.file); else await loadMd(keys(T['@help'] || HELP), null);
   if (init?.pdf) { await new Promise((r) => setTimeout(r, 400)); await exportPdf(init.pdf); }
 })();
