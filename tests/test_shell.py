@@ -33,4 +33,9 @@ with tempfile.TemporaryDirectory() as d:
             raise AssertionError(bad)
         except (ValueError, FileNotFoundError):
             pass
+
+# Description в .deb — только ASCII: Ubuntu App Center показывает кириллицу из dpkg как «??????» (так было в 0.2.0)
+sh = open(os.path.join(os.path.dirname(m.__file__), 'build.sh'), encoding='utf-8').read()
+desc = sh.split('\nDescription:', 1)[1].split('\nEOF', 1)[0]
+assert desc.isascii(), desc
 print('shell: ok')
