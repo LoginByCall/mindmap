@@ -58,4 +58,5 @@ with tempfile.TemporaryDirectory() as d:
             raise AssertionError(bad)
         except (ValueError, FileNotFoundError):
             pass
+assert [m.base_name(p) for p in ('/a/план.mm.md', 'b.md', 'c.mm', 'd.xmind')] == ['план', 'b', 'c', 'd']
 print('formats: ok')

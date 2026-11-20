@@ -559,7 +559,7 @@ const cmds = {
   async new() { if (await confirmDiscard()) loadMd('# Новая карта\n\n- Идея 1\n- Идея 2\n', null); },
   async open() { if (!(await confirmDiscard())) return; const r = await bridge.call('open'); if (r) loadFile(r); },
   async save() { if (file) await write(file.path); else await cmds.saveAs(); },
-  async saveAs() { const p = await bridge.call('save_dialog', { name: file?.name || 'mindmap.md' }); if (p) await write(p); },
+  async saveAs() { const p = await bridge.call('save_dialog', { name: file?.name || 'mindmap.mm.md' }); if (p) await write(p); },
   pdf: () => exportPdf(null),
   toggleSrc() { src.classList.toggle('hidden'); $('srcBtn').classList.toggle('on'); if (!src.classList.contains('hidden')) src.focus(); },
   file() {   // повторный клик по «Файл» закрывает меню

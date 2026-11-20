@@ -124,6 +124,12 @@ WRITERS = {'.mm': mm_write, '.opml': opml_write, '.xmind': xmind_write}
 EXTS = ['.md', '.markdown', '.mm', '.opml', '.xmind']
 
 
+def base_name(path):
+    """Имя карты без расширения; у карт markmap двойное — «план.mm.md»."""
+    n = os.path.splitext(os.path.basename(path))[0]
+    return n[:-3] if n.endswith('.mm') else n
+
+
 def load(path):
     ext = os.path.splitext(path)[1].lower()
     with open(path, 'rb') as f:
@@ -184,9 +190,10 @@ def main():
         del args[i:i + 2]
     start = os.path.abspath(args[0]) if args else None
 
+    GLib.set_prgname('mindmap')   # класс окна = StartupWMClass ярлыка: в доке окно встаёт к своему значку
     win = Gtk.Window(title='Mind Map')
     win.set_default_size(1200, 800)
-    win.set_icon_name('x-office-drawing')
+    win.set_icon_from_file(os.path.join(here, 'web', 'icon.svg'))
     ucm = WebKit2.UserContentManager()
     view = WebKit2.WebView.new_with_user_content_manager(ucm)
     if os.environ.get('MINDMAP_DEBUG'):  # инспектор WebKit и console.log в stdout
@@ -238,7 +245,7 @@ def main():
             dlg.add_filter(f)
         if action == Gtk.FileChooserAction.SAVE:
             dlg.set_do_overwrite_confirmation(True)
-            dlg.set_current_name(name or 'mindmap.md')
+            dlg.set_current_name(name or 'mindmap.mm.md')
         path = dlg.get_filename() if dlg.run() == Gtk.ResponseType.ACCEPT else None
         dlg.destroy()
         return path
@@ -316,7 +323,7 @@ def main():
             if cmd == 'ready':
                 val = {'file': load(start) if start and os.path.exists(start) else None, 'pdf': pdf_out}
                 if start and not os.path.exists(start):  # новый файл с указанным именем
-                    val['file'] = {'path': start, 'name': os.path.basename(start), 'md': '# ' + os.path.splitext(os.path.basename(start))[0] + '\n'}
+                    val['file'] = {'path': start, 'name': os.path.basename(start), 'md': '# ' + base_name(start) + '\n'}
             elif cmd == 'state':
                 state['dirty'] = a['dirty']
                 win.set_title(('● ' if a['dirty'] else '') + a['name'] + ' — Mind Map')
@@ -334,7 +341,7 @@ def main():
             elif cmd == 'save_dialog':
                 p = chooser(Gtk.FileChooserAction.SAVE, a.get('name'))
                 if p and os.path.splitext(p)[1].lower() not in EXTS:
-                    p += '.md'
+                    p += '.mm.md'
                 val = p
             elif cmd == 'save':
                 val = save(a['path'], a['md'], a['tree'])

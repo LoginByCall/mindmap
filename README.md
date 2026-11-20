@@ -1,42 +1,42 @@
 # Mind Map — лёгкий редактор на markmap
 
+*Lightweight offline mind map editor for Linux (GTK3 + WebKit2GTK, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
+
 Просмотр и правка интеллект-карт под Linux. GTK3 + WebKit2GTK (системные пакеты), внутри — [markmap](https://github.com/markmap/markmap) 0.18.12 и d3 7.9.0, лежат локально в `web/vendor/`, сеть не нужна.
 
 ## Запуск
 
 ```sh
-./mindmap.py [карта.md|.mm|.opml|.xmind]
-./mindmap.py карта.md --pdf карта.pdf     # экспорт без интерфейса
+./mindmap.py [карта.mm.md|.mm|.opml|.xmind]
+./mindmap.py карта.mm.md --pdf карта.pdf     # экспорт без интерфейса
 ```
 
 Зависимости (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 
-## Сборка пакета
+## Установка
 
 ```sh
-./build.sh [версия]     # по умолчанию 0.1.0
-sudo apt install ./dist/mindmap_0.1.0_all.deb   # команда `mindmap` + ярлык в меню, зависимости подтянет apt
-./dist/mindmap.run карта.md                     # или один файл без установки
+./build.sh [версия]     # по умолчанию 0.2.0 → dist/mindmap_0.2.0_all.deb и dist/mindmap.run
+sudo apt install ./dist/mindmap_0.2.0_all.deb
 ```
 
-`mindmap.run` — самораспаковывающийся скрипт: при первом запуске разворачивается в `~/.cache/mindmap/<хеш>/`, дальше стартует сразу. GTK/WebKit в нём нет — нужны системные пакеты из списка выше.
+Пакет ставит команду `mindmap`, ярлык «Mind Map» в меню приложений, значок и типы файлов, зависимости подтянет apt.
 
-Ярлык в меню приложений:
+`mindmap.run` — то же одним файлом без установки (без ярлыка и типов файлов): при первом запуске разворачивается в `~/.cache/mindmap/<хеш>/`, дальше стартует сразу. GTK/WebKit в нём нет — нужны системные пакеты из списка выше.
+
+### Расширение файлов: `.mm.md`
+
+Карты стоит называть `план.mm.md` — так же, как их называет markmap (расширение для VS Code). Это обычный Markdown: его покажет GitHub и откроет любой редактор, но у него свой тип `text/x-markmap`, и двойной клик открывает карту. Обычные `.md` остаются за вашим редактором Markdown, Mind Map для них — в «Открыть с помощью». Новая карта по умолчанию сохраняется как `mindmap.mm.md`.
+
+Пакет регистрирует ещё `.mm` (FreeMind/Freeplane) и `.xmind` — в стандартной базе типов их нет (`.mm` там — troff). Сделать Mind Map приложением по умолчанию:
 
 ```sh
-cat > ~/.local/share/applications/mindmap.desktop <<EOF
-[Desktop Entry]
-Type=Application
-Name=Mind Map
-Exec=$PWD/mindmap.py %f
-Icon=x-office-drawing
-MimeType=text/markdown;application/x-freemind;text/x-opml+xml;application/vnd.xmind.workbook;
-Categories=Office;
-EOF
+xdg-mime default mindmap.desktop text/x-markmap application/x-freemind application/vnd.xmind.workbook text/x-opml+xml
 ```
 
 ## Возможности
 
+- Масштаб: колесо, щипок на тачпаде, `Ctrl+=` / `Ctrl+-`; `Ctrl+0` — вписать в окно.
 - Создание и правка карты: на графе (двойной клик по названию или списку, правое меню, клавиши) и в исходнике Markdown (`Ctrl+E` — показать/скрыть). Обе стороны синхронизируются.
 - Справка — `F1` или «?»; «Файл → Обучение» — учебная карта с заданиями-флажками.
 - Правка текста — прямо в узле, без отдельного поля поверх.
@@ -50,7 +50,7 @@ EOF
 - Список под чертой узла — мелким шрифтом, сворачивается кликом по ▾/▸. Правится одним полем (двойной клик по списку, `Shift+Enter` или меню): строка — пункт, `Enter` — новая строка, `Ctrl+Enter` — готово, `Esc` — отмена. Пустые строки отбрасываются, пустое поле убирает список.
 - Контекстное меню ветки: добавить дочернюю/соседнюю, переименовать, цвет (палитра, произвольный, сброс), свернуть, переместить вверх/вниз, повысить/понизить уровень, копировать/вырезать/вставить, удалить. На пустом месте: вписать, развернуть/свернуть всё, исходник, PDF.
 - Клавиши: `Tab`/`Enter` — дочерняя/соседняя, `Shift+Enter` — список под узлом, `F2` — правка, `Del` — удалить, `Пробел` — свернуть, стрелки — навигация, `Alt+стрелки` — перемещение, `Ctrl+Z`/`Ctrl+Y` — отмена/повтор, `Ctrl+N/O/S/Shift+S/P/Q`.
-- Форматы: Markdown (`.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). Формат при сохранении — по расширению.
+- Форматы: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). Формат при сохранении — по расширению.
 - Экспорт в PDF: векторный, одна страница по размеру карты.
 
 ## Хранение в Markdown
@@ -89,3 +89,7 @@ node tests/ui-input.mjs      # интерфейс настоящим вводо�
 ```
 
 Отладка: `MINDMAP_DEBUG=1 ./mindmap.py` — инспектор WebKit и `console.log` в stdout.
+
+## Лицензия
+
+[MIT](LICENSE). В `web/vendor/` — markmap (MIT) и d3 (ISC), их лицензии лежат рядом.
