@@ -20,8 +20,8 @@ Abhängigkeiten (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Installation
 
 ```sh
-./build.sh [Version]     # Standard 0.3.0 → dist/mindmap_0.3.0_all.deb und dist/mindmap.run
-sudo apt install ./dist/mindmap_0.3.0_all.deb
+./build.sh [Version]     # Standard 0.3.1 → dist/mindmap_0.3.1_all.deb und dist/mindmap.run
+sudo apt install ./dist/mindmap_0.3.1_all.deb
 ```
 
 Das Paket installiert den Befehl `mindmap`, die Verknüpfung „Mind Map“ im Anwendungsmenü, das Symbol und die Dateitypen; die Abhängigkeiten zieht apt nach.
