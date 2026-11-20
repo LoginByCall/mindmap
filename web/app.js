@@ -38,7 +38,7 @@ const TUTORIAL = `# Обучение
 - Третий
 
 ## 4. Список и заметка под веткой
-- [ ] Выделите «Покупки» и нажмите Shift+Enter, напишите пункты по строке, Ctrl+Enter — готово
+- [ ] Выделите «Покупки» и нажмите Shift+Enter, напишите пункты (новый — Shift+Enter), Enter — готово
 - [ ] Правый клик по «Покупки» → «Добавить заметку»
 - Покупки
 
@@ -271,7 +271,7 @@ function startEdit(n, list = false) {   // list: true — весь список 
   }
   editing = { n, list, box, created, html: box.innerHTML };
   box.textContent = list === 'note' ? n.note || '' : list ? (n.notes || []).map((t, i) => (n.notesOl ? `${n.notesOl + i}. ` : '') + t).join('\n') : n.text;
-  box.dataset.ph = list === 'note' ? t('Заметка · Ctrl+Enter — готово') : list ? t('Пункт на строку · Ctrl+Enter — готово') : '';
+  box.dataset.ph = list === 'note' ? t('Заметка · Shift+Enter — новая строка, Enter — готово') : list ? t('Пункт на строку · Shift+Enter — новая строка, Enter — готово') : '';
   box.classList.add('mm-edit');
   box.contentEditable = 'plaintext-only';
   box.onmousedown = (e) => e.stopPropagation();   // не отдавать d3-zoom: иначе мышью не поставить каретку
@@ -304,8 +304,8 @@ svg.addEventListener('focusout', (e) => { if (e.target === editing?.box) endEdit
 svg.addEventListener('keydown', (e) => {
   if (!editing || e.key === 'F1') return;   // F1 — справка: правку завершит toggleHelp
   e.stopPropagation();
-  // название: Enter — готово, Shift+Enter — перенос; список: Enter — новый пункт, Ctrl+Enter — готово
-  const done = e.key === 'Enter' && (editing.list ? e.ctrlKey || e.metaKey : !e.shiftKey);
+  // название, список, заметка: Enter — готово, Shift+Enter — новая строка (новый пункт списка)
+  const done = e.key === 'Enter' && !e.shiftKey;
   if (done) { e.preventDefault(); endEdit(true); }
   else if (e.key === 'Escape') endEdit(false);
 });

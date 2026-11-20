@@ -73,23 +73,23 @@ try {
   const notesInside = `[...document.querySelectorAll('.mm-notes')].every((n) => n.getBoundingClientRect().bottom <= n.closest('foreignObject').getBoundingClientRect().bottom + 0.5)`;
   ok(await js(notesInside), 'список внутри границ foreignObject');
 
-  // двойной клик по списку -> одно поле, строка = пункт; Enter — новая строка, Ctrl+Enter — готово
+  // двойной клик по списку -> одно поле, строка = пункт; Shift+Enter — новая строка, Enter — готово
   p = await at('Список под узлом', '.mm-notes li');
   ok(!!p, 'список под узлом отрисован');
   await click(...p, 2);
   ok(await js(`!!editing && editing.list && editing.box.innerText.split('\\n').length === 3 && editing.box.innerText.startsWith('мелкий шрифт')`), 'двойной клик по списку открывает весь список одним полем');
-  await key('Enter');
-  ok(await js(`!!editing && editing.box.innerText.replace(/\\n$/, '').split('\\n').length === 4`), 'Enter в поле списка добавляет строку, а не закрывает');
+  await key('Enter', 8);
+  ok(await js(`!!editing && editing.box.innerText.replace(/\\n$/, '').split('\\n').length === 4`), 'Shift+Enter в поле списка добавляет строку, а не закрывает');
   await cdp('Input.insertText', { text: '- новый пункт' });
-  await key('Enter', 2);
-  ok(await js(`!editing && src.value.includes('> - в Markdown: «> - пункт»\\n> - новый пункт')`), 'Ctrl+Enter сохраняет список, маркер «- » срезан');
+  await key('Enter');
+  ok(await js(`!editing && src.value.includes('> - в Markdown: «> - пункт»\\n> - новый пункт')`), 'Enter сохраняет список, маркер «- » срезан');
 
   // Shift+Enter на узле без списка -> пустое поле под чертой, пустые строки отбрасываются
   await click(...(await at('Клавиши', '.mm-t')));
   await key('Enter', 8);
   ok(await js(`!!editing && editing.box.innerText === '' && editing.list`), 'Shift+Enter открывает новый список');
   await js(`editing.box.textContent = 'раз\\n\\n два '`);
-  await key('Enter', 2);
+  await key('Enter');
   ok(await js(`src.value.includes('## Клавиши\\n> - раз\\n> - два\\n')`), 'новый список сохранён без пустых строк');
 
   // клик по ▾ сворачивает список, повторный — разворачивает
@@ -173,8 +173,8 @@ try {
   ok(await js(`[...document.querySelectorAll('.mm-num')].map((e) => e.textContent).slice(0, 2).join() === '1.,2.'`), 'номера видны в карте');
   await click(...(await at('Список под узлом', '.mm-notes li')), 2);
   await js(`getSelection().selectAllChildren(editing.box)`);
-  await cdp('Input.insertText', { text: '1. первый' }); await key('Enter'); await cdp('Input.insertText', { text: 'второй' });
-  await key('Enter', 2);
+  await cdp('Input.insertText', { text: '1. первый' }); await key('Enter', 8); await cdp('Input.insertText', { text: 'второй' });
+  await key('Enter');
   ok(await js(`src.value.includes('## Список под узлом\\n> 1. первый\\n> 2. второй\\n') && !!document.querySelector('.mm-notes ol')`), '«1. » в первой строке — нумерованный список под узлом');
 
   // флажок: клик по ☐ ставит отметку в исходнике
@@ -192,12 +192,12 @@ try {
   await click(...lp);
   ok(await js(`sel && sel.text === 'Мышь!' && location.href.endsWith('index.html')`), 'ссылка #мышь переходит к узлу');
 
-  // заметка: двойной клик — правка абзаца, Ctrl+Enter — в исходник строками «> »
+  // заметка: двойной клик — правка абзаца, Enter — в исходник строками «> »
   await click(...(await at('Ссылки и флажки', '.mm-para')), 2);
   ok(await js(`editing?.list === 'note' && editing.box.innerText.startsWith('Заметка под узлом')`), 'двойной клик по заметке открывает её правку');
   await js(`getSelection().selectAllChildren(editing.box)`);
-  await cdp('Input.insertText', { text: 'первая' }); await key('Enter'); await cdp('Input.insertText', { text: 'вторая' });
-  await key('Enter', 2);
+  await cdp('Input.insertText', { text: 'первая' }); await key('Enter', 8); await cdp('Input.insertText', { text: 'вторая' });
+  await key('Enter');
   ok(await js(`src.value.includes('## Ссылки и флажки\\n> первая\\n> вторая\\n')`), 'заметка сохранена строками «> »');
 
   // брошенные файлы: ссылка (пробелы — в <>), картинка — ![]
@@ -252,7 +252,7 @@ try {
   await press('Escape', 'Escape', 27);
 
   // сверка: каждая клавиша из обработчиков есть в справке
-  const keys = ['Tab', 'Enter', 'Shift+Enter', 'Ctrl+Enter', 'F2', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
+  const keys = ['Tab', 'Enter', 'Shift+Enter', 'F2', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
     'Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z', 'Esc', 'Ctrl+N', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+P', 'Ctrl+E', 'Ctrl+=', 'Ctrl+-', 'Ctrl++', 'Ctrl+0', 'F1', 'Ctrl+Q'];
   const missing = await js(`${JSON.stringify(keys)}.filter((k) => ![...help.querySelectorAll('kbd')].some((e) => e.textContent === k))`);
   ok(!missing.length, 'в справке есть все клавиши' + (missing.length ? ': нет ' + missing.join(', ') : ''));

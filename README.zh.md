@@ -50,7 +50,7 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 - 节点中的图片 `![](照片.jpg)`，复选框 `- [ ] 待办` / `- [x] 已完成`（点击切换）。
 - 节点下的备注——以 `> 文字` 开头的行，列表——`> - 项目`。在 .mm/.opml/.xmind 中，备注和列表存放在同一个字段里。
 - “文件”菜单：新建、打开、保存、另存为、导出为 PDF、退出（`Ctrl+Q`，有未保存内容时会询问）。
-- 节点横线下的列表——小字，点击 ▾/▸ 折叠。用一个输入框编辑（双击列表、`Shift+Enter` 或菜单）：一行一项，`Enter`——换行，`Ctrl+Enter`——完成，`Esc`——取消。空行会被丢弃，输入框为空则移除列表。
+- 节点横线下的列表——小字，点击 ▾/▸ 折叠。用一个输入框编辑（双击列表、`Shift+Enter` 或菜单）：一行一项，`Shift+Enter`——换行，`Enter`——完成，`Esc`——取消。空行会被丢弃，输入框为空则移除列表。
 - 分支右键菜单：添加子分支/同级分支、重命名、颜色（调色板、自定义、重置）、折叠、上移/下移、升级/降级、复制/剪切/粘贴、删除。在空白处：适应窗口、全部展开/折叠、源码、PDF。
 - 按键：`Tab`/`Enter`——子分支/同级分支，`Shift+Enter`——节点下的列表，`F2`——编辑，`Del`——删除，`空格`——折叠，方向键——导航，`Alt+方向键`——移动，`Ctrl+Z`/`Ctrl+Y`——撤销/重做，`Ctrl+N/O/S/Shift+S/P/Q`。
 - 格式：Markdown（`.mm.md`、`.md`）、FreeMind/Freeplane（`.mm`，XML）、OPML（`.opml`，XML）、XMind 2020+（`.xmind`）。保存时的格式由扩展名决定。

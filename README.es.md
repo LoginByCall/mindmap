@@ -50,7 +50,7 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 - Imágenes `![](foto.jpg)` en los nodos, casillas `- [ ] tarea` / `- [x] hecho` (un clic las alterna).
 - Una nota bajo el nodo son líneas `> texto`; una lista, `> - elemento`. En .mm/.opml/.xmind la nota y la lista se guardan en un único campo.
 - Menú «Archivo»: nuevo, abrir, guardar, guardar como, exportar a PDF, salir (`Ctrl+Q`, preguntará por lo no guardado).
-- La lista bajo la línea del nodo va en letra pequeña y se contrae con un clic en ▾/▸. Se edita en un solo campo (doble clic en la lista, `Shift+Enter` o el menú): una línea = un elemento, `Enter` nueva línea, `Ctrl+Enter` listo, `Esc` cancelar. Las líneas vacías se descartan; un campo vacío elimina la lista.
+- La lista bajo la línea del nodo va en letra pequeña y se contrae con un clic en ▾/▸. Se edita en un solo campo (doble clic en la lista, `Shift+Enter` o el menú): una línea = un elemento, `Shift+Enter` nueva línea, `Enter` listo, `Esc` cancelar. Las líneas vacías se descartan; un campo vacío elimina la lista.
 - Menú contextual de la rama: añadir hija/hermana, renombrar, color (paleta, personalizado, quitar), contraer, mover arriba/abajo, subir/bajar de nivel, copiar/cortar/pegar, eliminar. En el espacio vacío: ajustar, expandir/contraer todo, fuente, PDF.
 - Teclas: `Tab`/`Enter` rama hija/hermana, `Shift+Enter` lista bajo el nodo, `F2` editar, `Supr` eliminar, `Espacio` contraer, flechas para navegar, `Alt+flechas` para mover, `Ctrl+Z`/`Ctrl+Y` deshacer/rehacer, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formatos: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). El formato al guardar se elige por la extensión.

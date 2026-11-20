@@ -48,7 +48,7 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 - Images `![](photo.jpg)` in nodes, checkboxes `- [ ] to do` / `- [x] done` (a click toggles).
 - A note under a node — lines `> text`, a list — `> - item`. In .mm/.opml/.xmind the note and the list are stored in a single field.
 - "File" menu: new, open, save, save as, export to PDF, quit (`Ctrl+Q`, asks about unsaved changes).
-- A list under the node's line — in small type, collapsed by clicking ▾/▸. Edited in one field (double-click the list, `Shift+Enter` or the menu): a line is an item, `Enter` — new line, `Ctrl+Enter` — done, `Esc` — cancel. Empty lines are dropped, an empty field removes the list.
+- A list under the node's line — in small type, collapsed by clicking ▾/▸. Edited in one field (double-click the list, `Shift+Enter` or the menu): a line is an item, `Shift+Enter` — new line, `Enter` — done, `Esc` — cancel. Empty lines are dropped, an empty field removes the list.
 - Branch context menu: add child/sibling, rename, color (palette, custom, reset), collapse, move up/down, promote/demote, copy/cut/paste, delete. On empty space: fit, expand/collapse all, source, PDF.
 - Keys: `Tab`/`Enter` — child/sibling, `Shift+Enter` — list under the node, `F2` — edit, `Del` — delete, `Space` — collapse, arrows — navigate, `Alt+arrows` — move, `Ctrl+Z`/`Ctrl+Y` — undo/redo, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formats: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). The format on save is chosen by the extension.
