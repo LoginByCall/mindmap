@@ -197,6 +197,13 @@ function flushSrc() {
   undo.push(lastMd); redo = []; lastMd = src.value; root = mdtree.parse(lastMd); sel = null; setDirty(true); draw();
 }
 src.addEventListener('input', () => { clearTimeout(srcTimer); srcTimer = setTimeout(flushSrc, 300); });
+// граница исходник | карта: тянуть мышью; исходнику ≥ 120px, карте ≥ 200px
+$('split').addEventListener('pointerdown', (e) => {
+  const bar = e.currentTarget, left = src.getBoundingClientRect().left;
+  const move = (ev) => { src.style.width = Math.max(120, Math.min(ev.clientX - left, innerWidth - left - 200)) + 'px'; };
+  e.preventDefault(); bar.setPointerCapture(e.pointerId); bar.addEventListener('pointermove', move);
+  bar.addEventListener('pointerup', () => bar.removeEventListener('pointermove', move), { once: true });
+});
 
 function loadMd(md, f) {
   file = f; root = mdtree.parse(md); lastMd = src.value = md; undo = []; redo = []; sel = null;

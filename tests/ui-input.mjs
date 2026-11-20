@@ -269,6 +269,17 @@ try {
   ok(await js(`sel?.text === '1. Правка текста'`), 'ссылка-якорь в обучении ведёт к разделу 1');
   await js(`cmds.save()`); await sleep(300);
   ok(await js(`calls.some(([c]) => c === 'save_dialog') && !calls.some(([c]) => c === 'save')`), '«Сохранить» в обучении спрашивает имя');
+
+  // граница исходник | карта тянется настоящей мышью (владелец: «не даёт двигать границу»)
+  await js(`src.classList.contains('hidden') && cmds.toggleSrc()`); await sleep(300);
+  const [sx, sy] = await js(`(() => { const r = document.getElementById('split').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+  const w0 = await js(`src.getBoundingClientRect().width`);
+  await mouse('mousePressed', sx, sy); await mouse('mouseMoved', sx + 30, sy); await mouse('mouseMoved', 620, sy); await mouse('mouseReleased', 620, sy);
+  await sleep(300);
+  const w1 = await js(`src.getBoundingClientRect().width`);
+  ok(Math.abs(w1 - 620) <= 4 && Math.abs(w0 - 620) > 50, `граница исходника тянется мышью: ${Math.round(w0)} → ${Math.round(w1)}px`);
+  await mouse('mouseMoved', 300, sy); await sleep(200);
+  ok(await js(`src.getBoundingClientRect().width`) === w1, 'после отпускания граница не ездит за мышью');
 } catch (e) { console.log('FAIL ' + e.stack); fails++; }
 chrome.kill();
 await sleep(300);

@@ -16,9 +16,11 @@
   #bar button:hover, #bar button.on { background: var(--hover); }
   #bar .sep { width: 1px; background: var(--line); margin: 2px 4px; }
   #main { flex: 1; display: flex; min-height: 0; }
-  #src { width: 38%; resize: none; border: 0; border-right: 1px solid var(--line); padding: 10px; outline: none;
+  #src { width: 38%; flex: none; box-sizing: border-box; resize: none; border: 0; border-right: 1px solid var(--line); padding: 10px; outline: none;
          background: var(--panel); color: var(--fg); font: 13px/1.5 ui-monospace, monospace; tab-size: 2; }
-  #src.hidden { display: none; }
+  #src.hidden, #src.hidden + #split { display: none; }
+  /* граница исходник | карта: полоса 7px поверх линии, тянется мышью */
+  #split { width: 7px; margin: 0 -4px 0 -3px; position: relative; z-index: 1; cursor: col-resize; flex: none; }
   #map { flex: 1; width: 100%; height: 100%; }
   @media (prefers-color-scheme: dark) { #map { --markmap-text-color: #ddd; --markmap-circle-open-bg: #444; --markmap-code-bg: #333; --markmap-code-color: #ddd; } }
   #menu { position: fixed; display: none; min-width: 210px; padding: 4px 0; background: var(--bg); color: var(--fg);
@@ -94,6 +96,7 @@
 </div>
 <div id="main">
   <textarea id="src" class="hidden" spellcheck="false"></textarea>
+  <div id="split"></div>
   <svg id="map"></svg>
 </div>
 <div id="menu"></div>
