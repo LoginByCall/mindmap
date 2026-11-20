@@ -100,6 +100,7 @@ Maintainer: $MAINT
 Depends: $DEPS
 Section: editors
 Priority: optional
+Homepage: https://github.com/LoginByCall/mindmap
 Installed-Size: $(du -sk "$r/usr" | cut -f1)
 Description: lightweight offline mind map editor based on markmap
  View and edit mind maps: Markdown (*.mm.md), FreeMind, OPML, XMind;
