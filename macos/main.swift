@@ -280,8 +280,36 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMess
     }
 }
 
+#if SELFTEST   // macos/build.sh: те же случаи ссылок, что у link_target в tests/test_shell.py
+let fm = FileManager.default, d = fm.temporaryDirectory.appendingPathComponent("mm-selftest-\(getpid())").path
+try! fm.createDirectory(atPath: d + "/доки", withIntermediateDirectories: true)
+fm.createFile(atPath: d + "/доки/смета 1.pdf", contents: nil)
+fm.createFile(atPath: d + "/сеть.md", contents: nil)
+defer { try? fm.removeItem(atPath: d) }
+let base = d + "/карта.md", real = URL(fileURLWithPath: d).standardized.path
+func check(_ href: String, _ b: String?, _ want: String) {
+    let got: String
+    switch try? linkTarget(href, base: b) {
+    case .web(let u)?: got = "web " + u.absoluteString
+    case .map(let p)?: got = "map " + p
+    case .show(let p)?: got = "show " + p
+    case nil: got = "error"
+    }
+    if got != want { print("FAIL \(href): \(got) ≠ \(want)"); exit(1) }
+}
+check("https://a.b/c", nil, "web https://a.b/c")
+check("%D1%81%D0%B5%D1%82%D1%8C.md", base, "map \(real)/сеть.md")
+check("./доки/смета%201.pdf", base, "show \(real)/доки/смета 1.pdf")
+check("file://" + d + "/доки", nil, "show \(real)/доки")
+check("~", nil, "show " + NSHomeDirectory())
+check("javascript:alert(1)", base, "error")
+check("доки", nil, "error")
+check("нет.pdf", base, "error")
+print("selftest: ok")
+#else
 let app = NSApplication.shared
 let delegate = App()
 app.delegate = delegate
 app.setActivationPolicy(.regular)
 app.run()
+#endif

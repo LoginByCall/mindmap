@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English** · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [中文](README.zh.md)
 
-View and edit mind maps on Linux. GTK3 + WebKit2GTK (system packages) with [markmap](https://github.com/markmap/markmap) 0.18.12 and d3 7.9.0 inside, kept locally in `web/vendor/`; no network needed.
+View and edit mind maps on Linux and macOS. GTK3 + WebKit2GTK (system packages) with [markmap](https://github.com/markmap/markmap) 0.18.12 and d3 7.9.0 inside, kept locally in `web/vendor/`; no network needed.
 
 ## Running
 
@@ -32,6 +32,25 @@ The package also registers `.mm` (FreeMind/Freeplane) and `.xmind` — they are 
 
 ```sh
 xdg-mime default mindmap.desktop text/x-markmap application/x-freemind application/vnd.xmind.workbook text/x-opml+xml
+```
+
+## macOS
+
+`MindMap-<version>.dmg` from the releases: open it and drag Mind Map to Applications. Universal build (Intel and Apple Silicon), macOS 11 or later. Automatically tested on macOS 14 (Intel); not tested on Apple Silicon.
+
+The app is not signed with an Apple certificate, so macOS blocks the first launch:
+
+- macOS 14 and earlier: right-click Mind Map in Applications → Open → Open;
+- macOS 15 and later: try to open it, then System Settings → Privacy & Security → Open Anyway;
+- or in Terminal: `xattr -dr com.apple.quarantine /Applications/MindMap.app`.
+
+After that it starts normally. Double-click opens `.mm`, `.opml` and `.xmind`; `.md` via Open With. Shortcuts use ⌘ instead of Ctrl. Export without UI: `/Applications/MindMap.app/Contents/MacOS/mindmap map.mm.md --pdf map.pdf` (the map is drawn on screen, so the display must be awake).
+
+Building runs on a Mac with Command Line Tools (`xcode-select --install`), driven from Linux over ssh:
+
+```sh
+MAC=user@host macos/build.sh [version]     # → dist/MindMap-<version>.dmg
+MAC=user@host python3 tests/test_mac.py    # on the Mac: launch, PDF, formats, languages
 ```
 
 ## Features
@@ -83,15 +102,17 @@ Plain markmap will show such a blockquote as a child node — no content is lost
 ## Tests
 
 ```sh
-python3 test_formats.py      # .mm / .opml / .xmind, writing to disk
+python3 tests/test_formats.py  # .mm / .opml / .xmind in web/formats.js against the 0.3.2 reference
+python3 tests/test_shell.py    # mindmap.py shell: files, links
 node web/mdtree.test.js      # Markdown ⇄ tree
 python3 tests/test_i18n.py   # web/lang/*.json translations are complete, anchors in the maps are live
 python3 tests/test_ui.py     # UI in headless Chrome (synthetic events)
 python3 tests/test_pdf.py    # PDF export in real GTK: the whole map fits the page (needs a display)
 node tests/ui-input.mjs      # UI with real mouse input (Chrome DevTools Protocol)
+python3 tests/test_mac.py    # macOS build on the Mac over ssh (see “macOS”)
 ```
 
-Debugging: `MINDMAP_DEBUG=1 ./mindmap.py` — WebKit inspector and `console.log` to stdout.
+Debugging: `MINDMAP_DEBUG=1 ./mindmap.py` — WebKit inspector and `console.log` to stdout. On a Mac: `MINDMAP_DEBUG=1 /Applications/MindMap.app/Contents/MacOS/mindmap` — bridge commands and JS console to stderr.
 
 ## License
 

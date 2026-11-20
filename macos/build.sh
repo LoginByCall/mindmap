@@ -56,6 +56,7 @@ d=/tmp/mm-build.$$
 tar -C "$s" -czf - . | ssh "$MAC" "set -e; rm -rf $d; mkdir $d; trap 'rm -rf $d' EXIT; cd $d; tar xzf -
   : > empty.modulemap
   printf '%s' '{\"version\":0,\"roots\":[{\"type\":\"directory\",\"name\":\"/Library/Developer/CommandLineTools/usr/include/swift\",\"contents\":[{\"type\":\"file\",\"name\":\"module.modulemap\",\"external-contents\":\"$d/empty.modulemap\"}]}]}' > vfs.yaml
+  swiftc -D SELFTEST -vfsoverlay vfs.yaml main.swift -o selftest >&2 && ./selftest >&2
   for a in x86_64 arm64; do swiftc -O -target \$a-apple-macos11 -vfsoverlay vfs.yaml main.swift -o mindmap-\$a >&2; done
   A=dmg/MindMap.app/Contents; mkdir -p \$A/MacOS \$A/Resources
   lipo -create -output \$A/MacOS/mindmap mindmap-x86_64 mindmap-arm64

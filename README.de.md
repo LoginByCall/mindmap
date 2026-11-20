@@ -2,11 +2,11 @@
 
 [Русский](README.md) · [English](README.en.md) · [Español](README.es.md) · [Français](README.fr.md) · **Deutsch** · [中文](README.zh.md)
 
-*Lightweight offline mind map editor for Linux (GTK3 + WebKit2GTK, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
+*Lightweight offline mind map editor for Linux and macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
 
-*Leichter Offline-Editor für Mindmaps unter Linux (GTK3 + WebKit2GTK, markmap): Markdown, FreeMind, OPML, XMind, PDF-Export. MIT.*
+*Leichter Offline-Editor für Mindmaps unter Linux und macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, PDF-Export. MIT.*
 
-Mindmaps unter Linux ansehen und bearbeiten. GTK3 + WebKit2GTK (Systempakete); darin laufen [markmap](https://github.com/markmap/markmap) 0.18.12 und d3 7.9.0, die lokal in `web/vendor/` liegen – ein Netzwerk wird nicht benötigt.
+Mindmaps unter Linux und macOS ansehen und bearbeiten. GTK3 + WebKit2GTK (Systempakete); darin laufen [markmap](https://github.com/markmap/markmap) 0.18.12 und d3 7.9.0, die lokal in `web/vendor/` liegen – ein Netzwerk wird nicht benötigt.
 
 ## Start
 
@@ -36,6 +36,25 @@ Das Paket registriert außerdem `.mm` (FreeMind/Freeplane) und `.xmind` – in d
 
 ```sh
 xdg-mime default mindmap.desktop text/x-markmap application/x-freemind application/vnd.xmind.workbook text/x-opml+xml
+```
+
+## macOS
+
+`MindMap-<Version>.dmg` aus den Releases: öffnen und Mind Map in „Programme“ ziehen. Universal-Build (Intel und Apple Silicon), ab macOS 11. Automatisch getestet unter macOS 14 (Intel); auf Apple Silicon nicht getestet.
+
+Die App ist nicht mit einem Apple-Zertifikat signiert, daher blockiert macOS den ersten Start:
+
+- macOS 14 und älter: Rechtsklick auf Mind Map in „Programme“ → „Öffnen“ → „Öffnen“;
+- macOS 15 und neuer: Öffnen versuchen, dann „Systemeinstellungen“ → „Datenschutz & Sicherheit“ → „Dennoch öffnen“;
+- oder im Terminal: `xattr -dr com.apple.quarantine /Applications/MindMap.app`.
+
+Danach startet sie normal. Doppelklick öffnet `.mm`, `.opml` und `.xmind`, `.md` über „Öffnen mit“. Tastenkürzel mit ⌘ statt Ctrl. Export ohne Oberfläche: `/Applications/MindMap.app/Contents/MacOS/mindmap karte.mm.md --pdf karte.pdf` (die Karte wird auf dem Bildschirm gezeichnet, der Bildschirm darf also nicht im Ruhezustand sein).
+
+Gebaut wird auf einem Mac mit Command Line Tools (`xcode-select --install`), gesteuert von Linux per ssh:
+
+```sh
+MAC=user@host macos/build.sh [Version]     # → dist/MindMap-<Version>.dmg
+MAC=user@host python3 tests/test_mac.py    # auf dem Mac: Start, PDF, Formate, Sprachen
 ```
 
 ## Funktionen
@@ -87,15 +106,17 @@ Gewöhnliches markmap zeigt ein solches Zitat als Unterknoten an – der Inhalt 
 ## Prüfungen
 
 ```sh
-python3 test_formats.py      # .mm / .opml / .xmind, Schreiben auf Datenträger
+python3 tests/test_formats.py  # .mm / .opml / .xmind in web/formats.js gegen die Referenz 0.3.2
+python3 tests/test_shell.py    # Hülle mindmap.py: Dateien, Links
 node web/mdtree.test.js      # Markdown ⇄ Baum
 python3 tests/test_i18n.py   # Übersetzungen web/lang/*.json vollständig, Anker in den Karten gültig
 python3 tests/test_ui.py     # Oberfläche in headless Chrome (synthetische Ereignisse)
 python3 tests/test_pdf.py    # PDF-Export im echten GTK: die ganze Karte passt auf die Seite (braucht ein Display)
 node tests/ui-input.mjs      # Oberfläche mit echter Mauseingabe (Chrome DevTools Protocol)
+python3 tests/test_mac.py    # macOS-Build auf dem Mac per ssh (siehe „macOS“)
 ```
 
-Fehlersuche: `MINDMAP_DEBUG=1 ./mindmap.py` – WebKit-Inspektor und `console.log` auf stdout.
+Fehlersuche: `MINDMAP_DEBUG=1 ./mindmap.py` – WebKit-Inspektor und `console.log` auf stdout. Auf dem Mac: `MINDMAP_DEBUG=1 /Applications/MindMap.app/Contents/MacOS/mindmap` – Brückenbefehle und JS-Konsole auf stderr.
 
 ## Lizenz
 

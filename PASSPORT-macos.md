@@ -24,9 +24,12 @@
 
 ## Допущения
 
-- [ПРЕДПОЛОЖЕНИЕ] WKWebView на macOS 14 поддерживает `DecompressionStream('deflate-raw')` (Safari 16.4+) — нужен для чтения `.xmind` в JS → проверить на этапе 1 первым же опытом на iMac.
-- [ПРЕДПОЛОЖЕНИЕ] Щипок в WKWebView приходит в страницу DOM-событиями `gesturestart/gesturechange` (Safari на macOS) → тогда в Swift ничего не нужно; проверить на этапе 3.
-- [ПРЕДПОЛОЖЕНИЕ] Печать: `WKWebView.printOperation(with:)` + `NSPrintInfo` с `jobDisposition = .save` учитывает `@media print`; `createPDF` его не учитывает (рисует экран). Множитель масштаба как в WebKitGTK — проверить меткой (как в 0.3.2).
+- [измерено: 2026-11-20, iMac] WKWebView на macOS 14 — `DecompressionStream('deflate-raw')` есть; WebKitGTK 2.52 — тоже (`.xmind` открывается в test_pdf.py).
+- [ПРЕДПОЛОЖЕНИЕ] Щипок в WKWebView приходит в страницу событиями `gesturestart/gesturechange` → обработчик в app.js; проверка — ручная (M7), нужен трекпад (у Magic Mouse щипка нет).
+- [измерено: 2026-11-20, iMac] Печать `printOperation` + `jobDisposition = .save` + `runModal(for:)` учитывает `@media print`, страница ровно w×h·0,75 pt, без множителя WebKitGTK (M3).
+- [измерено: 2026-11-20, iMac] Со спящим дисплеем WebKit не рисует кадры — карта не достраивается, `--pdf` висит. Тест будит дисплей `caffeinate -u`.
+- [измерено: 2026-11-20, iMac] `screencapture` по ssh без разрешения «Запись экрана» видит только обои → M1 снимает само приложение (`MINDMAP_SNAPSHOT`).
+- [измерено: 2026-11-20, iMac] CLT 16.2: лишний `usr/include/swift/module.modulemap` (2023, ничей) ломает `import WebKit` → `-vfsoverlay` в macos/build.sh, root не нужен.
 - [ПРЕДПОЛОЖЕНИЕ] Приложение, запущенное по ssh тем же пользователем (`open`), появляется в его графической сессии — iMac: пользователь `alexander` в консоли.
 - [измерено: 2026-11-20, iMac] macOS 14.8.1 (23J30), x86_64, Command Line Tools без Xcode, Swift 6.0.3, SDK 15.2, python3 есть, node нет.
 - Доступ: `ssh alexander@192.168.88.250`. Правило из AnyPC: сборку и проверку класть архивом в `/tmp/<каталог>` и после удалять.
@@ -59,14 +62,30 @@
 - [2026-11-20] ASK — проверка на iMac владельца по ssh (владелец), не GitHub Actions.
 - [2026-11-20] AUTO — сборка тоже на iMac (CLT есть, Xcode не нужен); CI не заводим.
 - [2026-11-20] AUTO — задача не влезала в остаток окна сессии 0.3.x: паспорт записан, работа — с новой сессии.
+- [2026-11-20] NOTIFY — мост: `open/save/link/ready` передают байты base64, новая команда `error`, `openFile` (web/BRIDGE.md). Формат файлов не менялся: .mm/.opml байт-в-байт с 0.3.2.
+- [2026-11-20] AUTO — `.xmind` пишется stored-zip (без сжатия): свой zip-писатель короче, чем deflate через CompressionStream с асинхронностью.
+- [2026-11-20] AUTO — старый test_formats.py → tests/test_shell.py (оболочка) + tests/test_formats.py (JS); те же случаи ссылок — самотест Swift при сборке.
+- [2026-11-20] AUTO — минимум macOS 11 (UTType, printOperation); на Mac несохранённое — точка в кнопке закрытия, без «●» в заголовке.
+- [2026-11-20] AUTO — нестабильная проверка ui-smoke «markdown rendered in node» (фикс. 400 мс) → опрос до 3 с.
 
 ## Верификация
 
-- V0 — | V1 — | V2 (iMac, вручную) — | V3 —
+| # | Статус | Чем |
+|---|---|---|
+| M1 | ✓ V1 | test_mac.py: окно видно, снимок карты через 3 с |
+| M2 | ✓ V1 | test_formats.py (байт-в-байт .mm/.opml), test_pdf.py (GTK), test_mac.py (Mac) |
+| M3 | ✓ V1 | test_mac.py: 1 страница 850×368 pt, ветки внутри |
+| M4 | ожидает | ИЗМЕРЕНИЕ #1 |
+| M5 | ✓ V1 | test_mac.py: de, zh-Hans, ja→en, ru |
+| M6 | ½ | подписи ⌘ — test_ui.py (ui-mac.js); поведение ⌘ и правки в полях — ИЗМЕРЕНИЕ #1 |
+| M7 | ожидает | ИЗМЕРЕНИЕ #1 (нужен трекпад) |
+| M8 | ✓ V1 | Linux: test_i18n, test_formats, test_shell, test_ui, test_pdf, mdtree, ui-input |
+| M9 | ✓ V0 | .dmg 0,9 МБ, x86_64+arm64; arm64 не запускался |
+| M10 | ✓ | README ×6, раздел macOS |
 
 ## СЛЕДУЮЩИЙ ШАГ
 
-- Этап 1, первый опыт: на iMac в `/tmp/mm-probe` — минимальный swift-скрипт с WKWebView, проверить `typeof DecompressionStream` и `new DecompressionStream('deflate-raw')`, удалить каталог. От результата зависит, как читать `.xmind`.
+- Этапы 1–4 и 6 (кроме выпуска) сделаны. Ждём ИЗМЕРЕНИЕ #1 владельца (`/tmp/mm-manual` на iMac), затем — слово на выпуск 0.4.0: поднять VER в build.sh/macos/build.sh и README, `./build.sh`, `macos/build.sh`, `gh release create v0.4.0` с .deb, .run, .dmg; после — удалить `/tmp/mm-manual` на iMac.
 
 ## Ожидает человека
 

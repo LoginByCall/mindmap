@@ -2,9 +2,9 @@
 
 [Русский](README.md) · [English](README.en.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · **中文**
 
-*适用于 Linux 的轻量离线思维导图编辑器（GTK3 + WebKit2GTK、markmap）：Markdown、FreeMind、OPML、XMind、PDF 导出。MIT 许可。*
+*适用于 Linux 和 macOS 的轻量离线思维导图编辑器（GTK3 + WebKit2GTK、Swift + WKWebView、markmap）：Markdown、FreeMind、OPML、XMind、PDF 导出。MIT 许可。*
 
-在 Linux 下查看和编辑思维导图。GTK3 + WebKit2GTK（系统软件包），内置 [markmap](https://github.com/markmap/markmap) 0.18.12 和 d3 7.9.0，存放在本地的 `web/vendor/` 中，无需联网。
+在 Linux 和 macOS 下查看和编辑思维导图。GTK3 + WebKit2GTK（系统软件包），内置 [markmap](https://github.com/markmap/markmap) 0.18.12 和 d3 7.9.0，存放在本地的 `web/vendor/` 中，无需联网。
 
 ## 运行
 
@@ -34,6 +34,25 @@ sudo apt install ./dist/mindmap_0.3.2_all.deb
 
 ```sh
 xdg-mime default mindmap.desktop text/x-markmap application/x-freemind application/vnd.xmind.workbook text/x-opml+xml
+```
+
+## macOS
+
+从发布页下载 `MindMap-<版本>.dmg`：打开后把 Mind Map 拖进“应用程序”。通用版本（Intel 和 Apple Silicon），需要 macOS 11 或更高版本。已在 macOS 14（Intel）上自动测试；未在 Apple Silicon 上测试。
+
+应用没有 Apple 证书签名，因此 macOS 会拦截首次启动：
+
+- macOS 14 及更早：在“应用程序”中右键点按 Mind Map →“打开”→“打开”；
+- macOS 15 及更新：先尝试打开，然后进入“系统设置”→“隐私与安全性”→“仍要打开”；
+- 或在终端中执行：`xattr -dr com.apple.quarantine /Applications/MindMap.app`。
+
+之后即可正常启动。双击可打开 `.mm`、`.opml` 和 `.xmind`，`.md` 请用“打开方式”。快捷键用 ⌘ 代替 Ctrl。无界面导出：`/Applications/MindMap.app/Contents/MacOS/mindmap 导图.mm.md --pdf 导图.pdf`（导图在屏幕上绘制，显示器不能处于睡眠状态）。
+
+在装有 Command Line Tools（`xcode-select --install`）的 Mac 上构建，从 Linux 通过 ssh 驱动：
+
+```sh
+MAC=user@host macos/build.sh [版本]        # → dist/MindMap-<版本>.dmg
+MAC=user@host python3 tests/test_mac.py    # 在 Mac 上：启动、PDF、格式、语言
 ```
 
 ## 功能
@@ -85,15 +104,17 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 ## 检查
 
 ```sh
-python3 test_formats.py      # .mm / .opml / .xmind，写入磁盘
+python3 tests/test_formats.py  # web/formats.js 中的 .mm / .opml / .xmind，对照 0.3.2 基准
+python3 tests/test_shell.py    # mindmap.py 外壳：文件、链接
 node web/mdtree.test.js      # Markdown ⇄ 树
 python3 tests/test_i18n.py   # web/lang/*.json 的翻译完整，导图中的锚点有效
 python3 tests/test_ui.py     # 无头 Chrome 中的界面（合成事件）
 python3 tests/test_pdf.py    # 在真实 GTK 中导出 PDF：整张导图完整位于页面内（需要显示器）
 node tests/ui-input.mjs      # 用真实的鼠标输入测试界面（Chrome DevTools Protocol）
+python3 tests/test_mac.py    # 通过 ssh 在 Mac 上测试 macOS 版本（见“macOS”）
 ```
 
-调试：`MINDMAP_DEBUG=1 ./mindmap.py`——WebKit 检查器，`console.log` 输出到 stdout。
+调试：`MINDMAP_DEBUG=1 ./mindmap.py`——WebKit 检查器，`console.log` 输出到 stdout。 Mac 上：`MINDMAP_DEBUG=1 /Applications/MindMap.app/Contents/MacOS/mindmap`——桥接命令和 JS 控制台输出到 stderr。
 
 ## 许可证
 

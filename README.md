@@ -2,9 +2,9 @@
 
 **Русский** · [English](README.en.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [中文](README.zh.md)
 
-*Lightweight offline mind map editor for Linux (GTK3 + WebKit2GTK, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
+*Lightweight offline mind map editor for Linux and macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
 
-Просмотр и правка интеллект-карт под Linux. GTK3 + WebKit2GTK (системные пакеты), внутри — [markmap](https://github.com/markmap/markmap) 0.18.12 и d3 7.9.0, лежат локально в `web/vendor/`, сеть не нужна.
+Просмотр и правка интеллект-карт под Linux и macOS. GTK3 + WebKit2GTK (системные пакеты), внутри — [markmap](https://github.com/markmap/markmap) 0.18.12 и d3 7.9.0, лежат локально в `web/vendor/`, сеть не нужна.
 
 ## Запуск
 
@@ -34,6 +34,25 @@ sudo apt install ./dist/mindmap_0.3.2_all.deb
 
 ```sh
 xdg-mime default mindmap.desktop text/x-markmap application/x-freemind application/vnd.xmind.workbook text/x-opml+xml
+```
+
+## macOS
+
+`MindMap-<версия>.dmg` из релизов: откройте и перетащите Mind Map в «Программы». Сборка universal (Intel и Apple Silicon), macOS 11 и новее. Автоматически проверена на macOS 14 (Intel); на Apple Silicon не проверялась.
+
+Приложение не подписано сертификатом Apple, поэтому первый запуск macOS заблокирует:
+
+- macOS 14 и старше: правый клик по Mind Map в «Программах» → «Открыть» → «Открыть»;
+- macOS 15 и новее: попробуйте открыть, затем «Системные настройки» → «Конфиденциальность и безопасность» → «Всё равно открыть»;
+- или в Терминале: `xattr -dr com.apple.quarantine /Applications/MindMap.app`.
+
+Дальше приложение запускается как обычно. Двойной клик открывает `.mm`, `.opml` и `.xmind`, а `.md` — через «Открыть с помощью». Сочетания клавиш — с ⌘ вместо Ctrl. Экспорт без интерфейса: `/Applications/MindMap.app/Contents/MacOS/mindmap карта.mm.md --pdf карта.pdf` (карта рисуется на экране, поэтому дисплей не должен спать).
+
+Сборка — на Маке с Command Line Tools (`xcode-select --install`), запускается с Linux по ssh:
+
+```sh
+MAC=user@host macos/build.sh [версия]      # → dist/MindMap-<версия>.dmg
+MAC=user@host python3 tests/test_mac.py    # на Маке: запуск, PDF, форматы, языки
 ```
 
 ## Возможности
@@ -85,15 +104,17 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 ## Проверки
 
 ```sh
-python3 test_formats.py      # .mm / .opml / .xmind, запись на диск
+python3 tests/test_formats.py  # .mm / .opml / .xmind в web/formats.js против эталона 0.3.2
+python3 tests/test_shell.py    # оболочка mindmap.py: файлы, ссылки
 node web/mdtree.test.js      # Markdown ⇄ дерево
 python3 tests/test_i18n.py   # переводы web/lang/*.json полны, якоря в картах живые
 python3 tests/test_ui.py     # интерфейс в headless Chrome (синтетические события)
 python3 tests/test_pdf.py    # экспорт в PDF в настоящем GTK: карта целиком на странице (нужен дисплей)
 node tests/ui-input.mjs      # интерфейс настоящим вводом мыши (Chrome DevTools Protocol)
+python3 tests/test_mac.py    # сборка macOS на Маке по ssh (см. «macOS»)
 ```
 
-Отладка: `MINDMAP_DEBUG=1 ./mindmap.py` — инспектор WebKit и `console.log` в stdout.
+Отладка: `MINDMAP_DEBUG=1 ./mindmap.py` — инспектор WebKit и `console.log` в stdout. На Маке — `MINDMAP_DEBUG=1 /Applications/MindMap.app/Contents/MacOS/mindmap`: команды моста и консоль JS в stderr.
 
 ## Лицензия
 

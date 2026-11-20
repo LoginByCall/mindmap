@@ -2,6 +2,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const key = (k, o = {}) => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, ...o }));
 const elOf = (text) => [...svg.querySelectorAll('g.markmap-node')].find((g) => g.__data__.payload.ref.text === text);
 const log = (...a) => console.log('SMOKE', ...a);
+const until = async (f, ms = 3000) => { for (let t = 0; t < ms && !f(); t += 100) await sleep(100); return f(); };   // отрисовка под нагрузкой бывает медленнее
 (async () => {
   try {
     await sleep(800);
@@ -25,7 +26,7 @@ const log = (...a) => console.log('SMOKE', ...a);
     ok(!!editing && editing.box.isContentEditable, 'inline editor opened');
     editing.box.textContent = 'Новый **пункт**'; editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await sleep(400);
     ok(src.value.includes('- Новый **пункт**'), 'child added via graph');
-    ok(!!elOf('Новый **пункт**').querySelector('strong'), 'markdown rendered in node');
+    ok(await until(() => elOf('Новый **пункт**')?.querySelector('strong')), 'markdown rendered in node');
     // Enter -> соседняя, Esc отменяет переименование
     key('Enter'); await sleep(500);
     editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
@@ -46,6 +47,9 @@ const log = (...a) => console.log('SMOKE', ...a);
     // Alt+↓ перемещение
     sel = root.children[0]; key('ArrowDown', { altKey: true }); await sleep(300);
     ok(root.children.map((c) => c.text).join() === 'D,B', 'move down');
+    // новый файл из командной строки: карта-заготовка с именем без расширения (у карт markmap оно двойное)
+    await loadFile({ path: '/a/план.mm.md', name: 'план.mm.md', data: null }); ok(src.value === '# план\n', 'new map named план');
+    await loadFile({ path: '/a/c.mm', name: 'c.mm', data: null }); ok(src.value === '# c\n', 'new map named c');
     log('ALL PASSED');
   } catch (e) { log(e.message); }
   document.title = 'SMOKE-DONE';
