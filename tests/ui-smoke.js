@@ -8,6 +8,7 @@ const until = async (f, ms = 3000) => { for (let t = 0; t < ms && !f(); t += 100
     await sleep(800);
     const ok = (c, m) => { if (!c) throw new Error('FAIL ' + m); log('ok', m); };
     ok(svg.querySelectorAll('g.markmap-node').length > 5, 'help map rendered');
+    ok(/^Mind Map \d+\.\d+\.\d+ · github\.com\/LoginByCall\/mindmap$/.test(document.querySelector('#help .about')?.textContent), 'about: version + GitHub in help');
     // регрессия: обёртка строк в t() однажды вклеила «t(» в узел без списка
     ok(!/t\(|\)[▸▾]/.test(svg.textContent), 'no stray t( in rendered nodes');
     // правый клик по узлу -> меню

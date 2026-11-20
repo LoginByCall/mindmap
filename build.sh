@@ -4,7 +4,7 @@
 set -eu
 umask 022
 cd "$(dirname "$0")"
-VER=${1:-0.4.0}
+VER=${1:-$(sed -n "s/^const VERSION = '\([^']*\)'.*/\1/p" web/app.js)}   # по умолчанию — из web/app.js
 MAINT="$(git config user.name || echo mindmap) <$(git config user.email || echo mindmap@localhost)>"
 DEPS='python3 (>= 3.8), python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1'
 mkdir -p dist && rm -f dist/mindmap_*.deb dist/mindmap.run   # .dmg кладёт macos/build.sh — не трогаем
@@ -14,6 +14,7 @@ tmp=$(mktemp -d) && trap 'rm -rf "$tmp"' EXIT
 app="$tmp/app" && mkdir -p "$app"
 cp mindmap.py "$app/" && chmod 755 "$app/mindmap.py"
 cp -r web "$app/" && rm -f "$app/web/mdtree.test.js" "$app/web/BRIDGE.md"
+sed -i "s/^const VERSION = '[^']*'/const VERSION = '$VER'/" "$app/web/app.js"   # «О программе» показывает версию сборки
 
 # ---------- .deb ----------
 r="$tmp/deb"

@@ -4,12 +4,13 @@
 # swiftc, lipo, iconutil, codesign, hdiutil во временной папке /tmp, которая после удаляется.
 set -eu
 cd "$(dirname "$0")/.."
-VER=${1:-0.4.0}
+VER=${1:-$(sed -n "s/^const VERSION = '\([^']*\)'.*/\1/p" web/app.js)}   # по умолчанию — из web/app.js
 MAC=${MAC:-alexander@192.168.88.250}
 tmp=$(mktemp -d) && trap 'rm -rf "$tmp"' EXIT
 s="$tmp/src" && mkdir -p "$s/MindMap.iconset"
 cp macos/main.swift "$s/"
 cp -r web "$s/" && rm -f "$s/web/mdtree.test.js" "$s/web/BRIDGE.md"
+sed -i "s/^const VERSION = '[^']*'/const VERSION = '$VER'/" "$s/web/app.js"   # «О программе» показывает версию сборки
 
 # значок: все размеры .iconset (iconutil соберёт .icns)
 python3 - "$s/MindMap.iconset" <<'EOF'
