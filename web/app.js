@@ -197,12 +197,16 @@ function flushSrc() {
   undo.push(lastMd); redo = []; lastMd = src.value; root = mdtree.parse(lastMd); sel = null; setDirty(true); draw();
 }
 src.addEventListener('input', () => { clearTimeout(srcTimer); srcTimer = setTimeout(flushSrc, 300); });
-// граница исходник | карта: тянуть мышью; исходнику ≥ 120px, карте ≥ 200px
+// граница исходник | карта: тянуть мышью; исходнику ≥ 120px, карте ≥ 200px; ширина запоминается (localStorage)
+const srcWidth = (w) => { src.style.width = Math.max(120, Math.min(w, innerWidth - 200)) + 'px'; };
+try { if (+localStorage.srcWidth) srcWidth(+localStorage.srcWidth); } catch { /* хранилище недоступно — ширина по умолчанию */ }
 $('split').addEventListener('pointerdown', (e) => {
-  const bar = e.currentTarget, left = src.getBoundingClientRect().left;
-  const move = (ev) => { src.style.width = Math.max(120, Math.min(ev.clientX - left, innerWidth - left - 200)) + 'px'; };
+  const bar = e.currentTarget, move = (ev) => srcWidth(ev.clientX - src.getBoundingClientRect().left);
   e.preventDefault(); bar.setPointerCapture(e.pointerId); bar.addEventListener('pointermove', move);
-  bar.addEventListener('pointerup', () => bar.removeEventListener('pointermove', move), { once: true });
+  bar.addEventListener('pointerup', () => {
+    bar.removeEventListener('pointermove', move);
+    try { localStorage.srcWidth = parseInt(src.style.width); } catch { /* не запомнится — не беда */ }
+  }, { once: true });
 });
 
 function loadMd(md, f) {

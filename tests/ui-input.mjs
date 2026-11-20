@@ -280,6 +280,9 @@ try {
   ok(Math.abs(w1 - 620) <= 4 && Math.abs(w0 - 620) > 50, `граница исходника тянется мышью: ${Math.round(w0)} → ${Math.round(w1)}px`);
   await mouse('mouseMoved', 300, sy); await sleep(200);
   ok(await js(`src.getBoundingClientRect().width`) === w1, 'после отпускания граница не ездит за мышью');
+  await cdp('Page.reload'); await sleep(1500);
+  await js(`cmds.toggleSrc()`); await sleep(300);
+  ok(Math.abs(await js(`src.getBoundingClientRect().width`) - w1) <= 1, 'ширина исходника запомнилась после перезагрузки');
 } catch (e) { console.log('FAIL ' + e.stack); fails++; }
 chrome.kill();
 await sleep(300);
