@@ -3,15 +3,12 @@
 
 Запуск:  mindmap.py [файл.md|.mm|.opml|.xmind] [--pdf выход.pdf]
 """
+import base64
 import gettext
-import io
 import json
 import os
 import sys
 import urllib.parse
-import uuid
-import zipfile
-import xml.etree.ElementTree as ET
 
 TR = {}   # перевод из web/lang/<язык>.json, ключ — русская строка; пусто — русский
 
@@ -32,141 +29,19 @@ def ui_lang(env=os.environ):
     return 'en'
 
 
-# Дерево обмена с JS: {"text", "color", "fold", "children": [...]}
-
-
-# ---------- FreeMind / Freeplane (.mm, XML) ----------
-def mm_read(data):
-    def conv(e):
-        text = e.get('TEXT')
-        if text is None:  # Freeplane: текст в <richcontent TYPE="NODE"><html>...
-            rc = e.find('richcontent')
-            text = ' '.join(''.join(rc.itertext()).split()) if rc is not None else ''
-        edge = e.find('edge')
-        color = (edge.get('COLOR') if edge is not None else None) or e.get('COLOR')
-        note = e.find("richcontent[@TYPE='NOTE']")
-        notes = []
-        if note is not None:  # заметка FreeMind: пункты <li> или строки текста
-            lis = note.findall('.//li')
-            notes = [' '.join(''.join(li.itertext()).split()) for li in lis] if lis else \
-                [ln.strip() for ln in ''.join(note.itertext()).splitlines() if ln.strip()]
-        return {'text': text, 'color': color, 'fold': e.get('FOLDED') == 'true', 'notes': notes,
-                'children': [conv(c) for c in e.findall('node')]}
-    node = ET.fromstring(data).find('node')
-    if node is None:
-        raise ValueError(_('В файле нет узла <node>'))
-    return conv(node)
-
-
-def mm_write(tree):
-    def conv(n, parent):
-        e = ET.SubElement(parent, 'node', TEXT=n['text'])
-        if n.get('color'):
-            e.set('COLOR', n['color'])
-            ET.SubElement(e, 'edge', COLOR=n['color'])
-        if n.get('fold') and n['children']:
-            e.set('FOLDED', 'true')
-        if n.get('notes'):
-            ul = ET.SubElement(ET.SubElement(ET.SubElement(e, 'richcontent', TYPE='NOTE'), 'html'), 'body')
-            ul = ET.SubElement(ul, 'ul')
-            for t in n['notes']:
-                ET.SubElement(ul, 'li').text = t
-        for c in n['children']:
-            conv(c, e)
-    m = ET.Element('map', version='1.0.1')
-    conv(tree, m)
-    return ET.tostring(m, encoding='utf-8')
-
-
-# ---------- OPML (XML) ----------
-def opml_read(data):
-    r = ET.fromstring(data)
-    def conv(e):
-        return {'text': e.get('text', ''), 'color': e.get('color'), 'fold': False,
-                'notes': [ln.strip() for ln in e.get('_note', '').splitlines() if ln.strip()],
-                'children': [conv(c) for c in e.findall('outline')]}
-    outs = r.findall('body/outline')
-    if len(outs) == 1:
-        return conv(outs[0])
-    return {'text': r.findtext('head/title') or '', 'children': [conv(o) for o in outs]}
-
-
-def opml_write(tree):
-    r = ET.Element('opml', version='2.0')
-    ET.SubElement(ET.SubElement(r, 'head'), 'title').text = tree['text']
-    def conv(n, parent):
-        e = ET.SubElement(parent, 'outline', text=n['text'])
-        if n.get('color'):
-            e.set('color', n['color'])  # нестандартный атрибут, OPML это допускает
-        if n.get('notes'):
-            e.set('_note', '\n'.join(n['notes']))  # соглашение OmniOutliner/Workflowy
-        for c in n['children']:
-            conv(c, e)
-    conv(tree, ET.SubElement(r, 'body'))
-    return ET.tostring(r, encoding='utf-8', xml_declaration=True)
-
-
-# ---------- XMind Zen / 2020+ (zip + content.json) ----------
-def xmind_read(data):
-    z = zipfile.ZipFile(io.BytesIO(data))
-    if 'content.json' not in z.namelist():
-        raise ValueError(_('Поддерживается XMind 2020+ (content.json); XMind 8 (content.xml) — нет'))
-    def conv(t):
-        note = t.get('notes', {}).get('plain', {}).get('content', '')
-        return {'text': t.get('title', ''), 'color': None, 'fold': t.get('branch') == 'folded',
-                'notes': [ln.strip() for ln in note.splitlines() if ln.strip()],
-                'children': [conv(c) for c in t.get('children', {}).get('attached', [])]}
-    return conv(json.loads(z.read('content.json'))[0]['rootTopic'])
-
-
-def xmind_write(tree):
-    def conv(n):
-        d = {'id': uuid.uuid4().hex, 'class': 'topic', 'title': n['text']}
-        if n.get('notes'):
-            d['notes'] = {'plain': {'content': '\n'.join(n['notes'])}}
-        if n['children']:
-            d['children'] = {'attached': [conv(c) for c in n['children']]}
-            if n.get('fold'):
-                d['branch'] = 'folded'
-        return d
-    content = [{'id': uuid.uuid4().hex, 'class': 'sheet', 'title': tree['text'] or 'Sheet 1', 'rootTopic': conv(tree)}]
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.writestr('content.json', json.dumps(content, ensure_ascii=False))
-        z.writestr('metadata.json', '{}')
-        z.writestr('manifest.json', json.dumps({'file-entries': {'content.json': {}, 'metadata.json': {}}}))
-    return buf.getvalue()
-
-
-READERS = {'.mm': mm_read, '.opml': opml_read, '.xmind': xmind_read}
-WRITERS = {'.mm': mm_write, '.opml': opml_write, '.xmind': xmind_write}
 EXTS = ['.md', '.markdown', '.mm', '.opml', '.xmind']
 
 
-def base_name(path):
-    """Имя карты без расширения; у карт markmap двойное — «план.mm.md»."""
-    n = os.path.splitext(os.path.basename(path))[0]
-    return n[:-3] if n.endswith('.mm') else n
-
-
+# Файлы: оболочка только читает и пишет байты (в мосту — base64), форматы разбирает web/formats.js
 def load(path):
-    ext = os.path.splitext(path)[1].lower()
     with open(path, 'rb') as f:
-        data = f.read()
-    res = {'path': path, 'name': os.path.basename(path)}
-    if ext in READERS:
-        res['tree'] = READERS[ext](data)
-    else:
-        res['md'] = data.decode('utf-8')
-    return res
+        return {'path': path, 'name': os.path.basename(path), 'data': base64.b64encode(f.read()).decode()}
 
 
-def save(path, md, tree):
-    ext = os.path.splitext(path)[1].lower()
-    data = WRITERS[ext](tree) if ext in WRITERS else md.encode('utf-8')
+def save(path, data):
     tmp = path + '.tmp'  # атомарная запись: при сбое старый файл не портится
     with open(tmp, 'wb') as f:
-        f.write(data)
+        f.write(base64.b64decode(data))
     os.replace(tmp, path)
     return {'path': path, 'name': os.path.basename(path)}
 
@@ -348,8 +223,8 @@ def main():
         try:
             if cmd == 'ready':
                 val = {'file': load(start) if start and os.path.exists(start) else None, 'pdf': pdf_out}
-                if start and not os.path.exists(start):  # новый файл с указанным именем
-                    val['file'] = {'path': start, 'name': os.path.basename(start), 'md': '# ' + base_name(start) + '\n'}
+                if start and not os.path.exists(start):  # новый файл с указанным именем: карту-заготовку сделает JS
+                    val['file'] = {'path': start, 'name': os.path.basename(start), 'data': None}
             elif cmd == 'state':
                 state['dirty'] = a['dirty']
                 win.set_title(('● ' if a['dirty'] else '') + a['name'] + ' — Mind Map')
@@ -359,6 +234,8 @@ def main():
                 val = True
             elif cmd == 'confirm':
                 val = ask(a['text'])
+            elif cmd == 'error':
+                raise ValueError(a['text'])
             elif cmd == 'open':
                 p = chooser(Gtk.FileChooserAction.OPEN)
                 val = load(p) if p else None
@@ -370,7 +247,7 @@ def main():
                     p += '.mm.md'
                 val = p
             elif cmd == 'save':
-                val = save(a['path'], a['md'], a['tree'])
+                val = save(a['path'], a['data'])
             elif cmd == 'pdf':
                 p = a.get('path') or chooser(Gtk.FileChooserAction.SAVE, a.get('name'), pdf=True)
                 if not p:

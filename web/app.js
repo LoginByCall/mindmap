@@ -96,7 +96,7 @@ const HELP = `# Mind Map
 let root, file = null, dirty = false, sel = null, clip = null, editing = null;
 let lastMd = '', undo = [], redo = [], parents = new Map();
 
-// ---------- мост к Python (GTK) ----------
+// ---------- мост к оболочке (GTK / macOS), команды — web/BRIDGE.md ----------
 const bridge = window.bridge = {
   n: 0, p: {},
   call(cmd, args = {}) {
@@ -201,7 +201,17 @@ const fromTree = (t, depth = 0) => ({ text: t.text || '', kind: depth < 2 ? 'h' 
 // ponytail: в .mm/.opml/.xmind одно поле заметок — заметка-абзац уходит туда первыми строками списка (без потерь, но без различия)
 const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold,
   notes: [...(n.note ? n.note.split('\n') : []), ...(n.notes || [])], children: n.children.map(toTree) });
-const loadFile = (r) => loadMd(r.md ?? mdtree.serialize(fromTree(r.tree)), { path: r.path, name: r.name });
+const extOf = (p) => /\.[^./]*$/.exec(p)?.[0].toLowerCase() || '';
+// файл от оболочки: {path, name, data: base64 | null — файла ещё нет}
+async function loadFile(r) {
+  let md;
+  try {
+    const b = r.data == null ? null : formats.unb64(r.data), f = formats[extOf(r.path)];
+    md = !b ? `# ${r.name.replace(/(\.mm)?\.[^.]*$/, '')}\n` : f ? mdtree.serialize(fromTree(await f.read(b)))
+      : new TextDecoder('utf-8', { fatal: true }).decode(b);
+  } catch (e) { return bridge.call('error', { text: `${r.name}: ${e.message}` }); }   // карта в редакторе цела
+  return loadMd(md, { path: r.path, name: r.name });
+}
 
 // ---------- операции над ветками ----------
 const newNode = (kind = 'li') => ({ text: t('Новая ветка'), kind, children: [] });
@@ -542,7 +552,8 @@ window.addEventListener('blur', hideMenu);
 const confirmDiscard = async () => !dirty || await bridge.call('confirm', { text: t('Несохранённые изменения будут потеряны. Продолжить?') });
 async function write(path) {
   flushSrc();
-  const r = await bridge.call('save', { path, md: lastMd, tree: toTree(root) });
+  const f = formats[extOf(path)], data = f ? f.write(toTree(root)) : new TextEncoder().encode(lastMd);
+  const r = await bridge.call('save', { path, data: formats.b64(data) });
   if (r) { file = r; setDirty(false); }
 }
 async function exportPdf(path) {
@@ -554,7 +565,7 @@ async function exportPdf(path) {
   clone.querySelector('g').removeAttribute('transform');
   clone.querySelector('.markmap-highlight')?.replaceChildren();
   const w = b.width + 2 * pad, h = b.height + 2 * pad;
-  // размер страницы задаёт Python (1 CSS px = 0.2646 мм); viewBox вписывает карту в неё
+  // размер страницы задаёт оболочка (1 CSS px = 0.2646 мм); viewBox вписывает карту в неё
   clone.setAttribute('viewBox', `${b.x - pad} ${b.y - pad} ${w} ${h}`);
   clone.setAttribute('width', w); clone.setAttribute('height', h);
   $('print').replaceChildren(clone);
@@ -575,7 +586,7 @@ const cmds = {
   },
   help: () => toggleHelp(),
   async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(T['@tutorial'] || TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
-  quit: () => bridge.call('quit'),   // закрытие окна в GTK спросит про несохранённое
+  quit: () => bridge.call('quit'),   // закрытие окна в оболочке спросит про несохранённое
   fit: () => mm.fit(),
   zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8),
   undo: undoFn, redo: redoFn,

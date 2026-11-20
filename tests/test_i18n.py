@@ -1,6 +1,6 @@
 """python3 tests/test_i18n.py [--dump файл.json] — переводы web/lang/*.json полны и не устарели.
 
-Ключ — русская строка из t('…') в web/app.js, _('…') в mindmap.py, кнопок панели и окна справки web/index.html;
+Ключ — русская строка из t('…') в web/app.js и web/formats.js, _('…') в mindmap.py, кнопок панели и окна справки web/index.html;
 @tutorial, @help — учебная и стартовая карты (Markdown), @helpHtml — содержимое окна справки.
 --dump пишет эталон с русскими значениями — исходник для перевода.
 """
@@ -8,7 +8,7 @@ import json, os, re, sys
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 rd = lambda p: open(os.path.join(root, p), encoding='utf-8').read()
-app, py, page = rd('web/app.js'), rd('mindmap.py'), rd('web/index.html')
+app, py, page = rd('web/app.js') + rd('web/formats.js'), rd('mindmap.py'), rd('web/index.html')
 cyr = re.compile('[А-Яа-яЁё]')
 keys = set(re.findall(r"\bt\('([^']+)'\)", app)) | set(re.findall(r"\b_\('([^']+)'\)", py))
 bar = page[page.index('<div id="bar">'):page.index('<div id="main">')]

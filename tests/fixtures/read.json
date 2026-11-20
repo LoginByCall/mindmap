@@ -1,0 +1,219 @@
+{
+ "out.mm": {
+  "text": "Карта & <план> \"1\"",
+  "color": null,
+  "fold": false,
+  "notes": [],
+  "children": [
+   {
+    "text": "A\tb 'c' > d",
+    "color": "#e15759",
+    "fold": true,
+    "notes": [
+     "первая",
+     "",
+     "x & y <z>"
+    ],
+    "children": [
+     {
+      "text": "",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   },
+   {
+    "text": "Свёрнут без детей",
+    "color": "#59a14f",
+    "fold": false,
+    "notes": [],
+    "children": []
+   },
+   {
+    "text": "**жирный** [ссылка](http://x.y/?a=1&b=2)\nстрока2",
+    "color": null,
+    "fold": false,
+    "notes": [
+     "один"
+    ],
+    "children": [
+     {
+      "text": "漢字 ✓",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   }
+  ]
+ },
+ "out.opml": {
+  "text": "Карта & <план> \"1\"",
+  "color": null,
+  "fold": false,
+  "notes": [],
+  "children": [
+   {
+    "text": "A\tb 'c' > d",
+    "color": "#e15759",
+    "fold": false,
+    "notes": [
+     "первая",
+     "x & y <z>"
+    ],
+    "children": [
+     {
+      "text": "",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   },
+   {
+    "text": "Свёрнут без детей",
+    "color": "#59a14f",
+    "fold": false,
+    "notes": [],
+    "children": []
+   },
+   {
+    "text": "**жирный** [ссылка](http://x.y/?a=1&b=2)\nстрока2",
+    "color": null,
+    "fold": false,
+    "notes": [
+     "один"
+    ],
+    "children": [
+     {
+      "text": "漢字 ✓",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   }
+  ]
+ },
+ "out.xmind": {
+  "text": "Карта & <план> \"1\"",
+  "color": null,
+  "fold": false,
+  "notes": [],
+  "children": [
+   {
+    "text": "A\tb 'c' > d",
+    "color": null,
+    "fold": true,
+    "notes": [
+     "первая",
+     "x & y <z>"
+    ],
+    "children": [
+     {
+      "text": "",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   },
+   {
+    "text": "Свёрнут без детей",
+    "color": null,
+    "fold": false,
+    "notes": [],
+    "children": []
+   },
+   {
+    "text": "**жирный** [ссылка](http://x.y/?a=1&b=2)\nстрока2",
+    "color": null,
+    "fold": false,
+    "notes": [
+     "один"
+    ],
+    "children": [
+     {
+      "text": "漢字 ✓",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   }
+  ]
+ },
+ "freeplane.mm": {
+  "text": "Корень с жирным вторая & строка",
+  "color": "#ff0000",
+  "fold": false,
+  "notes": [],
+  "children": [
+   {
+    "text": "Ветка",
+    "color": "#00ff00",
+    "fold": true,
+    "notes": [
+     "Строка 1",
+     "Строка 2"
+    ],
+    "children": [
+     {
+      "text": "Лист",
+      "color": null,
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   },
+   {
+    "text": "Со списком",
+    "color": null,
+    "fold": false,
+    "notes": [
+     "п 1",
+     "п2"
+    ],
+    "children": []
+   }
+  ]
+ },
+ "multi.opml": {
+  "text": "Заголовок",
+  "children": [
+   {
+    "text": "Один",
+    "color": null,
+    "fold": false,
+    "notes": [
+     "з1",
+     "з2"
+    ],
+    "children": [
+     {
+      "text": "Вложенный",
+      "color": "#123456",
+      "fold": false,
+      "notes": [],
+      "children": []
+     }
+    ]
+   },
+   {
+    "text": "Два",
+    "color": null,
+    "fold": false,
+    "notes": [],
+    "children": []
+   }
+  ]
+ }
+}

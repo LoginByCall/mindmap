@@ -1,0 +1,51 @@
+{
+ "text": "Карта & <план> \"1\"",
+ "color": null,
+ "fold": false,
+ "notes": [],
+ "children": [
+  {
+   "text": "A\tb 'c' > d",
+   "color": "#e15759",
+   "fold": true,
+   "notes": [
+    "первая",
+    "",
+    "x & y <z>"
+   ],
+   "children": [
+    {
+     "text": "",
+     "color": null,
+     "fold": false,
+     "notes": [],
+     "children": []
+    }
+   ]
+  },
+  {
+   "text": "Свёрнут без детей",
+   "color": "#59a14f",
+   "fold": true,
+   "notes": [],
+   "children": []
+  },
+  {
+   "text": "**жирный** [ссылка](http://x.y/?a=1&b=2)\nстрока2",
+   "color": null,
+   "fold": false,
+   "notes": [
+    "один"
+   ],
+   "children": [
+    {
+     "text": "漢字 ✓",
+     "color": null,
+     "fold": false,
+     "notes": [],
+     "children": []
+    }
+   ]
+  }
+ ]
+}

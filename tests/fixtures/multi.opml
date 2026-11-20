@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<opml version="2.0"><head><title>Заголовок</title></head><body>
+<outline text="Один" _note="з1&#10;  &#10;з2"><outline text="Вложенный" color="#123456"/></outline>
+<outline text="Два"/></body></opml>
