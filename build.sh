@@ -4,7 +4,7 @@
 set -eu
 umask 022
 cd "$(dirname "$0")"
-VER=${1:-0.3.1}
+VER=${1:-0.3.2}
 MAINT="$(git config user.name || echo mindmap) <$(git config user.email || echo mindmap@localhost)>"
 DEPS='python3 (>= 3.8), python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1'
 rm -rf dist && mkdir -p dist
