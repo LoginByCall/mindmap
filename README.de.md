@@ -4,6 +4,8 @@
 
 *Lightweight offline mind map editor for Linux and macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
 
+![Lernkarte in Mind Map](docs/screenshot.png)
+
 *Leichter Offline-Editor für Mindmaps unter Linux und macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, PDF-Export. MIT.*
 
 Mindmaps unter Linux und macOS ansehen und bearbeiten. GTK3 + WebKit2GTK (Systempakete); darin laufen [markmap](https://github.com/markmap/markmap) 0.18.12 und d3 7.9.0, die lokal in `web/vendor/` liegen – ein Netzwerk wird nicht benötigt.

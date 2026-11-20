@@ -4,6 +4,8 @@
 
 *Editor ligero y sin conexión de mapas mentales para Linux y macOS (GTK3 + WebKit2GTK, Swift + WKWebView, markmap): Markdown, FreeMind, OPML, XMind, exportación a PDF. MIT.*
 
+![Mapa del tutorial en Mind Map](docs/screenshot.png)
+
 Visor y editor de mapas mentales para Linux y macOS. GTK3 + WebKit2GTK (paquetes del sistema); por dentro, [markmap](https://github.com/markmap/markmap) 0.18.12 y d3 7.9.0, que están en local en `web/vendor/`, así que no hace falta red.
 
 ## Ejecución

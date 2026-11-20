@@ -4,6 +4,8 @@
 
 View and edit mind maps on Linux and macOS. GTK3 + WebKit2GTK (system packages) with [markmap](https://github.com/markmap/markmap) 0.18.12 and d3 7.9.0 inside, kept locally in `web/vendor/`; no network needed.
 
+![Tutorial map in Mind Map](docs/screenshot.png)
+
 ## Running
 
 ```sh

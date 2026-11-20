@@ -4,6 +4,8 @@
 
 *适用于 Linux 和 macOS 的轻量离线思维导图编辑器（GTK3 + WebKit2GTK、Swift + WKWebView、markmap）：Markdown、FreeMind、OPML、XMind、PDF 导出。MIT 许可。*
 
+![Mind Map 中的教程导图](docs/screenshot.png)
+
 在 Linux 和 macOS 下查看和编辑思维导图。GTK3 + WebKit2GTK（系统软件包），内置 [markmap](https://github.com/markmap/markmap) 0.18.12 和 d3 7.9.0，存放在本地的 `web/vendor/` 中，无需联网。
 
 ## 运行
