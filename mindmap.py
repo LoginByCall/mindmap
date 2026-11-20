@@ -195,6 +195,21 @@ def main():
     win.add(view)
     state = {'dirty': False}
 
+    # щипок тачпада: WebKit сам растянул бы всю страницу — забираем жест раньше него и масштабируем карту
+    pinch = state['pinch'] = Gtk.GestureZoom.new(view)   # ссылку держим: иначе жест соберёт GC
+    pinch.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+
+    def pinch_begin(g, _seq):
+        g.set_state(Gtk.EventSequenceState.CLAIMED)
+        state['scale'] = 1.0
+
+    def pinch_scale(g, scale):
+        _, x, y = g.get_bounding_box_center()
+        view.evaluate_javascript(f'zoomBy({scale / state["scale"]}, {x}, {y})', -1, None, None, None, None, None)
+        state['scale'] = scale
+    pinch.connect('begin', pinch_begin)
+    pinch.connect('scale-changed', pinch_scale)
+
     def error(msg):
         d = Gtk.MessageDialog(transient_for=win, modal=True, message_type=Gtk.MessageType.ERROR,
                               buttons=Gtk.ButtonsType.OK, text=str(msg))

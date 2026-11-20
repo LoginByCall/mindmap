@@ -62,7 +62,7 @@ const HELP = `# Mind Map
 - двойной клик — правка названия или списка
 - правый клик — меню ветки
 - клик по кружку — свернуть ветку
-- колесо — масштаб; тащить ветку — порядок и уровень, пустое место — сдвиг
+- колесо, щипок тачпада, Ctrl+= / Ctrl+- — масштаб; тащить ветку — порядок и уровень, пустое место — сдвиг
 
 ## Клавиши
 - Tab / Enter — дочерняя / соседняя ветка
@@ -102,6 +102,11 @@ const bridge = window.bridge = {
 // ---------- отрисовка ----------
 const mm = new Markmap(svg, { duration: 250, color: (d) => d.payload?.color || defaultOptions.color(d) });
 mm.svg.on('dblclick.zoom', null);
+// масштаб в f раз вокруг точки окна (щипок тачпада приходит из GTK) или вокруг центра карты (клавиши)
+window.zoomBy = (f, x, y) => {
+  const r = svg.getBoundingClientRect();
+  mm.svg.call(mm.zoom.scaleBy, f, x == null ? null : [x - r.left, y - r.top]);
+};
 // список под чертой: место в раскладке — по полной высоте узла (название + список),
 // а «якорь» (черта, кружок, связи) — по низу названия; список под чертой.
 // foreignObject растягиваем на полную высоту: WebKit при сдвиге полотна перерисовывает только
@@ -566,6 +571,7 @@ const cmds = {
   async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
   quit: () => bridge.call('quit'),   // закрытие окна в GTK спросит про несохранённое
   fit: () => mm.fit(),
+  zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8),
   undo: undoFn, redo: redoFn,
 };
 document.querySelectorAll('#bar button, #help [data-cmd]').forEach((b) => { b.onclick = () => cmds[b.dataset.cmd](); });
@@ -592,7 +598,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { hideMenu(); endDrag(); }
   const c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (c) {
-    const m = { n: cmds.new, o: cmds.open, s: e.shiftKey ? cmds.saveAs : cmds.save, p: cmds.pdf, q: cmds.quit, e: cmds.toggleSrc, 0: cmds.fit }[k];
+    const m = { n: cmds.new, o: cmds.open, s: e.shiftKey ? cmds.saveAs : cmds.save, p: cmds.pdf, q: cmds.quit, e: cmds.toggleSrc, 0: cmds.fit,
+      '=': cmds.zoomIn, '+': cmds.zoomIn, '-': cmds.zoomOut }[k];
     if (m) { e.preventDefault(); m(); return; }
   }
   if (e.target === src || editing) return;   // в текстовых полях — штатное поведение

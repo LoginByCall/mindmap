@@ -148,6 +148,19 @@ try {
   ok(await js(`!drag && !document.querySelector('.mm-ghost')`), 'Esc отменяет перетаскивание и прокрутку');
   await js(`mm.fit()`); await sleep(400);   // вернуть вид для следующих проверок
 
+  const k0 = await js(`d3.zoomTransform(svg).k`);
+  await key('=', 2);
+  const k1 = await js(`d3.zoomTransform(svg).k`);
+  await key('-', 2);
+  const k2 = await js(`d3.zoomTransform(svg).k`);
+  ok(Math.abs(k1 / k0 - 1.25) < 1e-6 && Math.abs(k2 - k0) < 1e-6, `Ctrl+= крупнее в 1.25, Ctrl+- обратно (${k0} → ${k1} → ${k2})`);
+  await js(`zoomBy(2, 100, 100)`);
+  const z = await js(`(() => { const t = d3.zoomTransform(svg), r = svg.getBoundingClientRect(); return [t.k, t.invert([100 - r.left, 100 - r.top])]; })()`);
+  await js(`zoomBy(0.5, 100, 100)`);
+  const z2 = await js(`(() => { const t = d3.zoomTransform(svg), r = svg.getBoundingClientRect(); return t.invert([100 - r.left, 100 - r.top]); })()`);
+  ok(Math.abs(z[0] / k0 - 2) < 1e-6 && Math.abs(z[1][0] - z2[0]) < 1e-6 && Math.abs(z[1][1] - z2[1]) < 1e-6, 'щипок масштабирует вокруг точки под пальцами');
+  await js(`mm.fit()`); await sleep(400);
+
   await key('z', 2); await key('z', 2);
   ok(await js(`src.value.indexOf('## Мышь!') < src.value.indexOf('## Клавиши')`), 'Ctrl+Z возвращает порядок');
 
@@ -240,7 +253,7 @@ try {
 
   // сверка: каждая клавиша из обработчиков есть в справке
   const keys = ['Tab', 'Enter', 'Shift+Enter', 'Ctrl+Enter', 'F2', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
-    'Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z', 'Esc', 'Ctrl+N', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+P', 'Ctrl+E', 'Ctrl+0', 'F1', 'Ctrl+Q'];
+    'Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z', 'Esc', 'Ctrl+N', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+P', 'Ctrl+E', 'Ctrl+=', 'Ctrl+-', 'Ctrl++', 'Ctrl+0', 'F1', 'Ctrl+Q'];
   const missing = await js(`${JSON.stringify(keys)}.filter((k) => ![...help.querySelectorAll('kbd')].some((e) => e.textContent === k))`);
   ok(!missing.length, 'в справке есть все клавиши' + (missing.length ? ': нет ' + missing.join(', ') : ''));
 
