@@ -3,7 +3,7 @@
 Ставит .dmg во временную папку /tmp на Маке и после удаляет. Проверяет:
 M9 — бинарник universal, .dmg ≤ 10 МБ; M3 — PDF одной страницей, нижняя и самая длинная ветки внутри;
 M2 — .mm/.opml/.xmind открываются (байты из Swift, разбор в formats.js); M5 — язык по -AppleLanguages;
-M1 — окно со стартовой картой (снимок экрана кладётся в dist/mac-screen.png — посмотреть глазами).
+M1 — окно со стартовой картой, закрытие окна без падения (снимок экрана кладётся в dist/mac-screen.png — посмотреть глазами).
 Нужны poppler-utils (pdfinfo, pdftotext) здесь и пользователь, вошедший в графический сеанс там.
 Дисплей Мака будится (caffeinate -u): со спящим экраном WebKit не рисует кадры и карта не достраивается.
 """
@@ -73,6 +73,8 @@ try:
                   f' & p=$!; for i in $(seq 20); do kill -0 $p 2>/dev/null || break; sleep 1; done; kill $p 2>/dev/null; cat {T}/m1.txt')
     subprocess.run(['scp', '-q', f'{MAC}:{T}/screen.png', shot])
     ok('visible=true' in out and os.path.exists(shot), f'M1: окно видно, снимок карты — dist/mac-screen.png ({out.strip()})')
+    # регрессия: после закрытия окна applicationShouldTerminate обращался к освобождённому окну — SIGSEGV
+    ok('exit: ok' in out, 'закрытие окна → штатный выход, без падения')
 finally:
     ssh(f'hdiutil detach -quiet {T}/vol 2>/dev/null; rm -rf {T}')
 sys.exit(1 if fails else 0)

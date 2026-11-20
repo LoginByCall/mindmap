@@ -66,6 +66,7 @@
 - [2026-11-20] AUTO — `.xmind` пишется stored-zip (без сжатия): свой zip-писатель короче, чем deflate через CompressionStream с асинхронностью.
 - [2026-11-20] AUTO — старый test_formats.py → tests/test_shell.py (оболочка) + tests/test_formats.py (JS); те же случаи ссылок — самотест Swift при сборке.
 - [2026-11-20] AUTO — минимум macOS 11 (UTType, printOperation); на Mac несохранённое — точка в кнопке закрытия, без «●» в заголовке.
+- [2026-11-20] AUTO — дефект (владелец, ИЗМЕРЕНИЕ #1): SIGSEGV при закрытии окна — окно освобождалось при закрытии, а applicationShouldTerminate обращался к нему. `isReleasedWhenClosed = false`; регрессия — test_mac.py закрывает окно и ждёт `exit: ok` (без исправления — FAIL).
 - [2026-11-20] AUTO — нестабильная проверка ui-smoke «markdown rendered in node» (фикс. 400 мс) → опрос до 3 с.
 
 ## Верификация

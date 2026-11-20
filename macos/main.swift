@@ -110,6 +110,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMess
         web = WKWebView(frame: NSRect(x: 0, y: 0, width: 1200, height: 800), configuration: cfg)
         web.navigationDelegate = self
         win = NSWindow(contentRect: web.frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        win.isReleasedWhenClosed = false   // окно живёт до конца: после его закрытия applicationShouldTerminate ещё обращается к нему
         win.title = "Mind Map"
         win.contentView = web
         win.delegate = self
@@ -138,13 +139,18 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMess
         do { js("openFile(\(json(try readFile(p))))") } catch { fail(error.localizedDescription) }
     }
 
+    func applicationWillTerminate(_ n: Notification) {   // тест M1: дошли до штатного выхода — не упали по дороге
+        if ProcessInfo.processInfo.environment["MINDMAP_SNAPSHOT"] != nil { log("exit: ok") }
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ a: NSApplication) -> Bool { true }
     func windowShouldClose(_ w: NSWindow) -> Bool {
         if dirty && !ask(tr("Есть несохранённые изменения. Закрыть без сохранения?")) { return false }
         dirty = false
         return true
     }
-    func applicationShouldTerminate(_ a: NSApplication) -> NSApplication.TerminateReply { windowShouldClose(win) ? .terminateNow : .terminateCancel }
+    func applicationShouldTerminate(_ a: NSApplication) -> NSApplication.TerminateReply {
+        !win.isVisible || windowShouldClose(win) ? .terminateNow : .terminateCancel   // окно уже закрыто — вопрос задан тогда
+    }
 
     func ask(_ text: String) -> Bool {
         let al = NSAlert()
@@ -212,7 +218,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMess
                 if let t = img?.tiffRepresentation, let png = NSBitmapImageRep(data: t)?.representation(using: .png, properties: [:]) {
                     try? png.write(to: URL(fileURLWithPath: out))
                 }
-                NSApp.terminate(nil)
+                self.win.performClose(nil)   // как кнопка закрытия: дальше приложение завершается само (регрессия: падало здесь)
             }
         }
     }
