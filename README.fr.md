@@ -89,6 +89,7 @@ python3 test_formats.py      # .mm / .opml / .xmind, écriture sur disque
 node web/mdtree.test.js      # Markdown ⇄ arbre
 python3 tests/test_i18n.py   # traductions web/lang/*.json complètes, ancres des cartes valides
 python3 tests/test_ui.py     # interface dans Chrome headless (événements synthétiques)
+python3 tests/test_pdf.py    # export PDF dans un vrai GTK : la carte tient entière sur la page (écran requis)
 node tests/ui-input.mjs      # interface avec de vraies entrées souris (Chrome DevTools Protocol)
 ```
 

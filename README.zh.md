@@ -89,6 +89,7 @@ python3 test_formats.py      # .mm / .opml / .xmind，写入磁盘
 node web/mdtree.test.js      # Markdown ⇄ 树
 python3 tests/test_i18n.py   # web/lang/*.json 的翻译完整，导图中的锚点有效
 python3 tests/test_ui.py     # 无头 Chrome 中的界面（合成事件）
+python3 tests/test_pdf.py    # 在真实 GTK 中导出 PDF：整张导图完整位于页面内（需要显示器）
 node tests/ui-input.mjs      # 用真实的鼠标输入测试界面（Chrome DevTools Protocol）
 ```
 

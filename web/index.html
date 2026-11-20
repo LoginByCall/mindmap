@@ -77,7 +77,8 @@
     html, body { height: 100%; overflow: hidden; background: #fff; }
     body > * { display: none !important; }
     #print { display: block !important; }
-    #print svg { display: block; --markmap-text-color: #333; --markmap-circle-open-bg: #fff; --muted: #777; }
+    /* WebKitGTK печатает CSS px в ~1,07 раза крупнее страницы (точный множитель плавает): размер — от ширины страницы, высота — по viewBox */
+    #print svg { display: block; width: 100%; height: auto; --markmap-text-color: #333; --markmap-circle-open-bg: #fff; --muted: #777; }
   }
 </style>
 </head>

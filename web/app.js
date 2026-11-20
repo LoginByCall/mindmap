@@ -553,9 +553,7 @@ async function exportPdf(path) {
   clone.removeAttribute('id');
   clone.querySelector('g').removeAttribute('transform');
   clone.querySelector('.markmap-highlight')?.replaceChildren();
-  // ponytail: при печати WebKit рисует текст на ~10–15% шире экранного замера — запас справа
-  const extra = 0.2 * Math.max(0, ...[...svg.querySelectorAll('foreignObject')].map((f) => +f.getAttribute('width') || 0));
-  const w = b.width + 2 * pad + extra, h = b.height + 2 * pad;
+  const w = b.width + 2 * pad, h = b.height + 2 * pad;
   // размер страницы задаёт Python (1 CSS px = 0.2646 мм); viewBox вписывает карту в неё
   clone.setAttribute('viewBox', `${b.x - pad} ${b.y - pad} ${w} ${h}`);
   clone.setAttribute('width', w); clone.setAttribute('height', h);

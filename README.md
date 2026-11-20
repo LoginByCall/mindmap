@@ -89,6 +89,7 @@ python3 test_formats.py      # .mm / .opml / .xmind, запись на диск
 node web/mdtree.test.js      # Markdown ⇄ дерево
 python3 tests/test_i18n.py   # переводы web/lang/*.json полны, якоря в картах живые
 python3 tests/test_ui.py     # интерфейс в headless Chrome (синтетические события)
+python3 tests/test_pdf.py    # экспорт в PDF в настоящем GTK: карта целиком на странице (нужен дисплей)
 node tests/ui-input.mjs      # интерфейс настоящим вводом мыши (Chrome DevTools Protocol)
 ```
 

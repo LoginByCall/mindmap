@@ -89,6 +89,7 @@ python3 test_formats.py      # .mm / .opml / .xmind, escritura en disco
 node web/mdtree.test.js      # Markdown ⇄ árbol
 python3 tests/test_i18n.py   # las traducciones web/lang/*.json están completas, los anclajes de los mapas funcionan
 python3 tests/test_ui.py     # interfaz en Chrome headless (eventos sintéticos)
+python3 tests/test_pdf.py    # exportación a PDF en GTK real: el mapa cabe entero en la página (requiere pantalla)
 node tests/ui-input.mjs      # interfaz con entrada real de ratón (Chrome DevTools Protocol)
 ```
 
