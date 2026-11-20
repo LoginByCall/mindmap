@@ -8,6 +8,14 @@ tf.md.validateLink = (u) => !/^\s*(javascript|vbscript|data):/i.test(u) || /^\s*
 const html = (t) => (t.includes('\n') ? tf.md.render(t) : tf.md.renderInline(t)) || '&nbsp;';
 
 const $ = (id) => document.getElementById(id);
+// перевод: mindmap.py кладёт словарь web/lang/<язык>.json в window.I18N; ключ — русская строка, нет словаря — русский
+const T = window.I18N || {}, t = (s) => T[s] ?? s;
+if (T['@helpHtml']) document.querySelector('#help .hbox').innerHTML = T['@helpHtml'];
+for (const b of document.querySelectorAll('#bar button, #help .hbox')) {
+  if (b.title) b.title = t(b.title);
+  if (b.ariaLabel) b.ariaLabel = t(b.ariaLabel);
+  if (b.tagName === 'BUTTON') b.textContent = t(b.textContent);
+}
 // учебная карта: задания-флажки, каждое выполняется прямо здесь
 const TUTORIAL = `# Обучение
 > Сделайте задание и кликните по его ☐. Карта учебная: правьте смело, Ctrl+Z всё вернёт.
@@ -132,7 +140,7 @@ mm.handleClick = async (e, d) => {   // клик по кружку: сверну
 function notesHtml(n) {
   if (!n.notes?.length && !n.note) return '';
   const para = n.note ? `<div class="mm-para">${html(n.note)}</div>` : '';
-  const items = !n.notes?.length ? '' : `<div class="mm-items"><span class="mm-nt" data-nt title="Свернуть/развернуть список">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>`
+  const items = !n.notes?.length ? '' : `<div class="mm-items"><span class="mm-nt" data-nt title="${t('Свернуть/развернуть список')}">${n.notesFold ? '▸' : '▾'} ${n.notes.length}</span>`
     + (n.notesFold ? '' : (n.notesOl ? `<ol start="${n.notesOl}">` : '<ul>') + n.notes.map((t) => `<li>${tf.md.renderInline(t) || '&nbsp;'}</li>`).join('')
       + (n.notesOl ? '</ol>' : '</ul>')) + '</div>';
   return `<div class="mm-notes">${para}${items}</div>`;
@@ -141,7 +149,7 @@ const CB_RE = /^\[([ xX])\]\s+/;   // флажок: «- [ ] дело», «- [x] 
 function titleHtml(n, num) {   // num — номер в нумерованном списке родителя
   const cb = n.text.match(CB_RE), on = cb && cb[1] !== ' ';
   return `<div class="mm-t${on ? ' mm-done' : ''}">` + (num ? `<span class="mm-num">${num}.</span> ` : '')
-    + (cb ? `<span class="mm-cb" data-cb title="Отметить">${on ? '☑' : '☐'}</span> ${html(n.text.slice(cb[0].length))}` : html(n.text)) + '</div>';
+    + (cb ? `<span class="mm-cb" data-cb title="${t('Отметить')}">${on ? '☑' : '☐'}</span> ${html(n.text.slice(cb[0].length))}` : html(n.text)) + '</div>';
 }
 function toINode(n, inh, num) {
   const color = n.color || inh;
@@ -164,7 +172,7 @@ const findEl = (n) => { const d = findD(n); return [...svg.querySelectorAll('g.m
 const highlight = () => mm.setHighlight((sel && findD(sel)) || null);
 
 // ---------- состояние и история ----------
-function setDirty(v) { dirty = v; setBase(); bridge.call('state', { dirty, name: file?.name || 'Без имени' }); }
+function setDirty(v) { dirty = v; setBase(); bridge.call('state', { dirty, name: file?.name || t('Без имени') }); }
 function commit(render = true) {
   const md = mdtree.serialize(root);
   if (md === lastMd) return Promise.resolve();
@@ -196,7 +204,7 @@ const toTree = (n) => ({ text: n.text, color: n.color || null, fold: !!n.fold,
 const loadFile = (r) => loadMd(r.md ?? mdtree.serialize(fromTree(r.tree)), { path: r.path, name: r.name });
 
 // ---------- операции над ветками ----------
-const newNode = (kind = 'li') => ({ text: 'Новая ветка', kind, children: [] });
+const newNode = (kind = 'li') => ({ text: t('Новая ветка'), kind, children: [] });
 async function added(c) {
   sel = c; await commit();
   const d = findD(c); if (d) await mm.ensureVisible(d);
@@ -263,7 +271,7 @@ function startEdit(n, list = false) {   // list: true — весь список 
   }
   editing = { n, list, box, created, html: box.innerHTML };
   box.textContent = list === 'note' ? n.note || '' : list ? (n.notes || []).map((t, i) => (n.notesOl ? `${n.notesOl + i}. ` : '') + t).join('\n') : n.text;
-  box.dataset.ph = list === 'note' ? 'Заметка · Ctrl+Enter — готово' : list ? 'Пункт на строку · Ctrl+Enter — готово' : '';
+  box.dataset.ph = list === 'note' ? t('Заметка · Ctrl+Enter — готово') : list ? t('Пункт на строку · Ctrl+Enter — готово') : '';
   box.classList.add('mm-edit');
   box.contentEditable = 'plaintext-only';
   box.onmousedown = (e) => e.stopPropagation();   // не отдавать d3-zoom: иначе мышью не поставить каретку
@@ -376,7 +384,7 @@ svg.addEventListener('contextmenu', (e) => {
   if (!n) return showMenu(canvasMenu(), e);
   sel = n; highlight();
   const w = inNotes(e);
-  showMenu(w ? [{ t: w === 'note' ? 'Изменить заметку' : 'Изменить список', k: 'Двойной клик', f: () => startEdit(n, w) }, '-', ...nodeMenu(n)] : nodeMenu(n), e);
+  showMenu(w ? [{ t: w === 'note' ? t('Изменить заметку') : t('Изменить список'), k: t('Двойной клик'), f: () => startEdit(n, w) }, '-', ...nodeMenu(n)] : nodeMenu(n), e);
 });
 
 // ---------- «схватил и тащи»: порядок и уровень веток ----------
@@ -460,53 +468,53 @@ function nodeMenu(n) {
     s.onclick = () => { hideMenu(); setColor(n, c); }; sw.append(s);
   }
   return [
-    { t: 'Добавить дочернюю ветку', k: 'Tab', f: () => addChild(n) },
-    { t: 'Добавить соседнюю ветку', k: 'Enter', f: () => addSibling(n), dis: !p },
-    { t: 'Переименовать', k: 'F2', f: () => startEdit(n) },
-    { t: n.notes?.length ? 'Изменить список' : 'Добавить список', k: 'Shift+Enter', f: () => startEdit(n, true) },
-    { t: n.notesFold ? 'Развернуть список' : 'Свернуть список', f: () => toggleNotes(n), dis: !n.notes?.length },
-    { t: n.notesOl ? 'Список: маркеры' : 'Список: нумерация', f: () => { if (n.notesOl) delete n.notesOl; else n.notesOl = 1; commit(); }, dis: !n.notes?.length },
-    { t: n.ol ? 'Ветки: маркеры' : 'Ветки: нумерация', f: () => setOl(n), dis: !n.children.length },
-    { t: n.note ? 'Изменить заметку' : 'Добавить заметку', f: () => startEdit(n, 'note') },
-    { t: CB_RE.test(n.text) ? 'Убрать флажок' : 'Добавить флажок', f: () => setCheck(n, !CB_RE.test(n.text)) },
-    '-', { t: 'Цвет ветки', dis: true }, { el: sw },
-    { t: 'Другой цвет…', f: () => pickColor(n) },
-    { t: 'Сбросить цвет', f: () => setColor(n, null), dis: !n.color },
+    { t: t('Добавить дочернюю ветку'), k: 'Tab', f: () => addChild(n) },
+    { t: t('Добавить соседнюю ветку'), k: 'Enter', f: () => addSibling(n), dis: !p },
+    { t: t('Переименовать'), k: 'F2', f: () => startEdit(n) },
+    { t: n.notes?.length ? t('Изменить список') : t('Добавить список'), k: 'Shift+Enter', f: () => startEdit(n, true) },
+    { t: n.notesFold ? t('Развернуть список') : t('Свернуть список'), f: () => toggleNotes(n), dis: !n.notes?.length },
+    { t: n.notesOl ? t('Список: маркеры') : t('Список: нумерация'), f: () => { if (n.notesOl) delete n.notesOl; else n.notesOl = 1; commit(); }, dis: !n.notes?.length },
+    { t: n.ol ? t('Ветки: маркеры') : t('Ветки: нумерация'), f: () => setOl(n), dis: !n.children.length },
+    { t: n.note ? t('Изменить заметку') : t('Добавить заметку'), f: () => startEdit(n, 'note') },
+    { t: CB_RE.test(n.text) ? t('Убрать флажок') : t('Добавить флажок'), f: () => setCheck(n, !CB_RE.test(n.text)) },
+    '-', { t: t('Цвет ветки'), dis: true }, { el: sw },
+    { t: t('Другой цвет…'), f: () => pickColor(n) },
+    { t: t('Сбросить цвет'), f: () => setColor(n, null), dis: !n.color },
     '-',
-    { t: n.fold ? 'Развернуть' : 'Свернуть', k: 'Пробел', f: () => toggle(n), dis: !n.children.length },
-    { t: 'Переместить вверх', k: 'Alt+↑', f: () => move(n, -1), dis: i <= 0 },
-    { t: 'Переместить вниз', k: 'Alt+↓', f: () => move(n, 1), dis: !p || i === p.children.length - 1 },
-    { t: 'Повысить уровень', k: 'Alt+←', f: () => outdent(n), dis: !p || !parents.get(p) },
-    { t: 'Понизить уровень', k: 'Alt+→', f: () => indent(n), dis: i <= 0 },
+    { t: n.fold ? t('Развернуть') : t('Свернуть'), k: t('Пробел'), f: () => toggle(n), dis: !n.children.length },
+    { t: t('Переместить вверх'), k: 'Alt+↑', f: () => move(n, -1), dis: i <= 0 },
+    { t: t('Переместить вниз'), k: 'Alt+↓', f: () => move(n, 1), dis: !p || i === p.children.length - 1 },
+    { t: t('Повысить уровень'), k: 'Alt+←', f: () => outdent(n), dis: !p || !parents.get(p) },
+    { t: t('Понизить уровень'), k: 'Alt+→', f: () => indent(n), dis: i <= 0 },
     '-',
-    { t: 'Копировать ветку', k: 'Ctrl+C', f: () => copy(n) },
-    { t: 'Вырезать ветку', k: 'Ctrl+X', f: () => cut(n), dis: !p },
-    { t: 'Вставить как дочернюю', k: 'Ctrl+V', f: () => paste(n), dis: !clip },
+    { t: t('Копировать ветку'), k: 'Ctrl+C', f: () => copy(n) },
+    { t: t('Вырезать ветку'), k: 'Ctrl+X', f: () => cut(n), dis: !p },
+    { t: t('Вставить как дочернюю'), k: 'Ctrl+V', f: () => paste(n), dis: !clip },
     '-',
-    { t: 'Удалить ветку', k: 'Del', f: () => remove(n), dis: !p },
+    { t: t('Удалить ветку'), k: 'Del', f: () => remove(n), dis: !p },
   ];
 }
 const fileMenu = () => [
-  { t: 'Справка', k: 'F1', f: cmds.help },
-  { t: 'Обучение', f: cmds.tutorial },
+  { t: t('Справка'), k: 'F1', f: cmds.help },
+  { t: t('Обучение'), f: cmds.tutorial },
   '-',
-  { t: 'Новый', k: 'Ctrl+N', f: cmds.new },
-  { t: 'Открыть…', k: 'Ctrl+O', f: cmds.open },
+  { t: t('Новый'), k: 'Ctrl+N', f: cmds.new },
+  { t: t('Открыть…'), k: 'Ctrl+O', f: cmds.open },
   '-',
-  { t: 'Сохранить', k: 'Ctrl+S', f: cmds.save },
-  { t: 'Сохранить как…', k: 'Ctrl+Shift+S', f: cmds.saveAs },
+  { t: t('Сохранить'), k: 'Ctrl+S', f: cmds.save },
+  { t: t('Сохранить как…'), k: 'Ctrl+Shift+S', f: cmds.saveAs },
   '-',
-  { t: 'Экспорт в PDF…', k: 'Ctrl+P', f: cmds.pdf },
+  { t: t('Экспорт в PDF…'), k: 'Ctrl+P', f: cmds.pdf },
   '-',
-  { t: 'Выход', k: 'Ctrl+Q', f: cmds.quit },
+  { t: t('Выход'), k: 'Ctrl+Q', f: cmds.quit },
 ];
 const canvasMenu = () => [
-  { t: 'Вписать в окно', k: 'Ctrl+0', f: cmds.fit },
-  { t: 'Развернуть всё', f: () => foldAll(false) },
-  { t: 'Свернуть всё', f: () => foldAll(true) },
+  { t: t('Вписать в окно'), k: 'Ctrl+0', f: cmds.fit },
+  { t: t('Развернуть всё'), f: () => foldAll(false) },
+  { t: t('Свернуть всё'), f: () => foldAll(true) },
   '-',
-  { t: src.classList.contains('hidden') ? 'Показать исходник' : 'Скрыть исходник', k: 'Ctrl+E', f: cmds.toggleSrc },
-  { t: 'Экспорт в PDF…', k: 'Ctrl+P', f: cmds.pdf },
+  { t: src.classList.contains('hidden') ? t('Показать исходник') : t('Скрыть исходник'), k: 'Ctrl+E', f: cmds.toggleSrc },
+  { t: t('Экспорт в PDF…'), k: 'Ctrl+P', f: cmds.pdf },
 ];
 function showMenu(items, e) {
   menu.replaceChildren(); menu.dataset.owner = '';
@@ -531,7 +539,7 @@ document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target) && 
 window.addEventListener('blur', hideMenu);
 
 // ---------- файлы и экспорт ----------
-const confirmDiscard = async () => !dirty || await bridge.call('confirm', { text: 'Несохранённые изменения будут потеряны. Продолжить?' });
+const confirmDiscard = async () => !dirty || await bridge.call('confirm', { text: t('Несохранённые изменения будут потеряны. Продолжить?') });
 async function write(path) {
   flushSrc();
   const r = await bridge.call('save', { path, md: lastMd, tree: toTree(root) });
@@ -556,7 +564,7 @@ async function exportPdf(path) {
   $('print').replaceChildren();
 }
 const cmds = {
-  async new() { if (await confirmDiscard()) loadMd('# Новая карта\n\n- Идея 1\n- Идея 2\n', null); },
+  async new() { if (await confirmDiscard()) loadMd(`# ${t('Новая карта')}\n\n- ${t('Идея')} 1\n- ${t('Идея')} 2\n`, null); },
   async open() { if (!(await confirmDiscard())) return; const r = await bridge.call('open'); if (r) loadFile(r); },
   async save() { if (file) await write(file.path); else await cmds.saveAs(); },
   async saveAs() { const p = await bridge.call('save_dialog', { name: file?.name || 'mindmap.mm.md' }); if (p) await write(p); },
@@ -568,7 +576,7 @@ const cmds = {
     showMenu(fileMenu(), { clientX: r.left, clientY: r.bottom + 2 }); menu.dataset.owner = 'file';
   },
   help: () => toggleHelp(),
-  async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
+  async tutorial() { if (await confirmDiscard()) { toggleHelp(false); loadMd(T['@tutorial'] || TUTORIAL, null); } },   // не файл: «Сохранить» спросит имя
   quit: () => bridge.call('quit'),   // закрытие окна в GTK спросит про несохранённое
   fit: () => mm.fit(),
   zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8),
@@ -618,6 +626,6 @@ function go(n) { if (!n) return; sel = n; highlight(); const d = findD(n); if (d
 // ---------- старт ----------
 (async () => {
   const init = await bridge.call('ready');
-  if (init?.file) await loadFile(init.file); else await loadMd(HELP, null);
+  if (init?.file) await loadFile(init.file); else await loadMd(T['@help'] || HELP, null);
   if (init?.pdf) { await new Promise((r) => setTimeout(r, 400)); await exportPdf(init.pdf); }
 })();

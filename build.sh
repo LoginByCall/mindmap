@@ -4,7 +4,7 @@
 set -eu
 umask 022
 cd "$(dirname "$0")"
-VER=${1:-0.2.0}
+VER=${1:-0.3.0}
 MAINT="$(git config user.name || echo mindmap) <$(git config user.email || echo mindmap@localhost)>"
 DEPS='python3 (>= 3.8), python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1'
 rm -rf dist && mkdir -p dist
@@ -29,15 +29,23 @@ Type=Application
 Name=Mind Map
 GenericName=Mind map editor
 GenericName[ru]=Редактор интеллект-карт
+GenericName[es]=Editor de mapas mentales
+GenericName[fr]=Éditeur de cartes mentales
+GenericName[de]=Mindmap-Editor
+GenericName[zh_CN]=思维导图编辑器
 Comment=Mind maps in Markdown, FreeMind, OPML and XMind
 Comment[ru]=Интеллект-карты в Markdown, FreeMind, OPML и XMind
+Comment[es]=Mapas mentales en Markdown, FreeMind, OPML y XMind
+Comment[fr]=Cartes mentales en Markdown, FreeMind, OPML et XMind
+Comment[de]=Mindmaps in Markdown, FreeMind, OPML und XMind
+Comment[zh_CN]=Markdown、FreeMind、OPML 和 XMind 格式的思维导图
 Exec=mindmap %f
 Icon=mindmap
 Terminal=false
 StartupWMClass=mindmap
 MimeType=text/x-markmap;application/x-freemind;text/x-opml+xml;application/vnd.xmind.workbook;text/markdown;
 Categories=Office;
-Keywords=mindmap;markmap;markdown;freemind;freeplane;xmind;opml;интеллект-карта;
+Keywords=mindmap;markmap;markdown;freemind;freeplane;xmind;opml;интеллект-карта;mapa mental;carte mentale;思维导图;
 EOF
 # типы файлов: *.mm.md — соглашение markmap (обычный Markdown, но со своим типом — двойной клик открывает карту);
 # FreeMind и XMind в shared-mime-info нет: *.mm без этого — troff, *.xmind — zip
@@ -47,6 +55,10 @@ cat > "$r/usr/share/mime/packages/mindmap.xml" <<'EOF'
   <mime-type type="text/x-markmap">
     <comment>Mind map (Markdown)</comment>
     <comment xml:lang="ru">Интеллект-карта (Markdown)</comment>
+    <comment xml:lang="es">Mapa mental (Markdown)</comment>
+    <comment xml:lang="fr">Carte mentale (Markdown)</comment>
+    <comment xml:lang="de">Mindmap (Markdown)</comment>
+    <comment xml:lang="zh_CN">思维导图（Markdown）</comment>
     <sub-class-of type="text/markdown"/>
     <icon name="mindmap"/>
     <glob pattern="*.mm.md"/>
@@ -54,6 +66,10 @@ cat > "$r/usr/share/mime/packages/mindmap.xml" <<'EOF'
   <mime-type type="application/x-freemind">
     <comment>FreeMind mind map</comment>
     <comment xml:lang="ru">Интеллект-карта FreeMind</comment>
+    <comment xml:lang="es">Mapa mental de FreeMind</comment>
+    <comment xml:lang="fr">Carte mentale FreeMind</comment>
+    <comment xml:lang="de">FreeMind-Mindmap</comment>
+    <comment xml:lang="zh_CN">FreeMind 思维导图</comment>
     <sub-class-of type="application/xml"/>
     <icon name="mindmap"/>
     <glob pattern="*.mm" weight="60"/>
@@ -62,6 +78,10 @@ cat > "$r/usr/share/mime/packages/mindmap.xml" <<'EOF'
   <mime-type type="application/vnd.xmind.workbook">
     <comment>XMind workbook</comment>
     <comment xml:lang="ru">Интеллект-карта XMind</comment>
+    <comment xml:lang="es">Libro de trabajo de XMind</comment>
+    <comment xml:lang="fr">Classeur XMind</comment>
+    <comment xml:lang="de">XMind-Arbeitsmappe</comment>
+    <comment xml:lang="zh_CN">XMind 工作簿</comment>
     <sub-class-of type="application/zip"/>
     <icon name="mindmap"/>
     <glob pattern="*.xmind"/>
@@ -81,9 +101,10 @@ Depends: $DEPS
 Section: editors
 Priority: optional
 Installed-Size: $(du -sk "$r/usr" | cut -f1)
-Description: лёгкий редактор интеллект-карт на markmap
- Просмотр и правка mind map: Markdown (*.mm.md), FreeMind, OPML, XMind;
- экспорт в PDF. GTK3 + WebKit2GTK, работает без сети.
+Description: lightweight offline mind map editor based on markmap
+ View and edit mind maps: Markdown (*.mm.md), FreeMind, OPML, XMind;
+ PDF export. GTK3 + WebKit2GTK, works offline.
+ UI languages: English, Russian, Spanish, French, German, Chinese.
 EOF
 fakeroot dpkg-deb --build "$r" "dist/mindmap_${VER}_all.deb" >/dev/null
 

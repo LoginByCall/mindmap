@@ -13,6 +13,25 @@ import uuid
 import zipfile
 import xml.etree.ElementTree as ET
 
+TR = {}   # перевод из web/lang/<язык>.json, ключ — русская строка; пусто — русский
+
+
+def _(s):
+    return TR.get(s, s)
+
+
+def ui_lang(env=os.environ):
+    """Язык интерфейса по локали, как gettext: первая непустая из LANGUAGE (список через «:»), LC_ALL, LC_MESSAGES, LANG.
+    Нет перевода — английский. ponytail: zh_TW тоже получает упрощённый китайский."""
+    val = next((env[v] for v in ('LANGUAGE', 'LC_ALL', 'LC_MESSAGES', 'LANG') if env.get(v)), '')
+    have = os.listdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'web', 'lang'))
+    for loc in val.split(':'):
+        code = loc.split('_')[0].split('.')[0].split('@')[0].lower()
+        if code == 'ru' or code + '.json' in have:
+            return code
+    return 'en'
+
+
 # Дерево обмена с JS: {"text", "color", "fold", "children": [...]}
 
 
@@ -35,7 +54,7 @@ def mm_read(data):
                 'children': [conv(c) for c in e.findall('node')]}
     node = ET.fromstring(data).find('node')
     if node is None:
-        raise ValueError('В файле нет узла <node>')
+        raise ValueError(_('В файле нет узла <node>'))
     return conv(node)
 
 
@@ -91,7 +110,7 @@ def opml_write(tree):
 def xmind_read(data):
     z = zipfile.ZipFile(io.BytesIO(data))
     if 'content.json' not in z.namelist():
-        raise ValueError('Поддерживается XMind 2020+ (content.json); XMind 8 (content.xml) — нет')
+        raise ValueError(_('Поддерживается XMind 2020+ (content.json); XMind 8 (content.xml) — нет'))
     def conv(t):
         note = t.get('notes', {}).get('plain', {}).get('content', '')
         return {'text': t.get('title', ''), 'color': None, 'fold': t.get('branch') == 'folded',
@@ -160,16 +179,16 @@ def link_target(href, base):
     if u.scheme == 'file':
         p = urllib.parse.unquote(u.path)
     elif u.scheme:  # javascript:, data: и прочее — не трогаем
-        raise ValueError(f'Неподдерживаемая ссылка: {href}')
+        raise ValueError(_('Неподдерживаемая ссылка:') + ' ' + href)
     else:
         p = os.path.expanduser(urllib.parse.unquote(u.path))
         if not os.path.isabs(p):
             if not base:
-                raise ValueError('Относительная ссылка считается от папки карты — сначала сохраните карту')
+                raise ValueError(_('Относительная ссылка считается от папки карты — сначала сохраните карту'))
             p = os.path.join(os.path.dirname(base), p)
     p = os.path.normpath(p)
     if not os.path.exists(p):
-        raise FileNotFoundError(f'Нет такого файла или папки: {p}')
+        raise FileNotFoundError(_('Нет такого файла или папки:') + ' ' + p)
     return ('map' if os.path.isfile(p) and os.path.splitext(p)[1].lower() in EXTS else 'show'), p
 
 
@@ -194,7 +213,14 @@ def main():
     win = Gtk.Window(title='Mind Map')
     win.set_default_size(1200, 800)
     win.set_icon_from_file(os.path.join(here, 'web', 'icon.svg'))
+    lang = ui_lang()
+    if lang != 'ru':
+        with open(os.path.join(here, 'web', 'lang', lang + '.json'), encoding='utf-8') as f:
+            TR.update(json.load(f))
     ucm = WebKit2.UserContentManager()
+    ucm.add_script(WebKit2.UserScript.new(   # до app.js: словарь для интерфейса, справки и обучения
+        f'window.I18N = {json.dumps(TR, ensure_ascii=False)}; document.documentElement.lang = {json.dumps(lang)};',
+        WebKit2.UserContentInjectedFrames.TOP_FRAME, WebKit2.UserScriptInjectionTime.START, None, None))
     view = WebKit2.WebView.new_with_user_content_manager(ucm)
     if os.environ.get('MINDMAP_DEBUG'):  # инспектор WebKit и console.log в stdout
         view.get_settings().set_enable_developer_extras(True)
@@ -231,7 +257,7 @@ def main():
         return ok
 
     def chooser(action, name=None, pdf=False):
-        dlg = Gtk.FileChooserNative.new('Сохранить' if action == Gtk.FileChooserAction.SAVE else 'Открыть',
+        dlg = Gtk.FileChooserNative.new(_('Сохранить') if action == Gtk.FileChooserAction.SAVE else _('Открыть'),
                                         win, action, None, None)
         filters = [('PDF', ['*.pdf'])] if pdf else [
             ('Mind map (md, mm, opml, xmind)', ['*' + e for e in EXTS]),
@@ -265,7 +291,7 @@ def main():
         op.set_print_settings(ps)
         op.set_page_setup(setup)
         op.connect('finished', lambda *_: done(path))
-        op.connect('failed', lambda _op, err: (error(f'Ошибка печати в PDF: {err.message}'), done(None)))
+        op.connect('failed', lambda _op, err: (error(_('Ошибка печати в PDF:') + ' ' + err.message), done(None)))
         op.print_()
 
     def show_in_files(path):
@@ -369,7 +395,7 @@ def main():
     ucm.register_script_message_handler('app')
 
     def on_close(*_):
-        return state['dirty'] and not ask('Есть несохранённые изменения. Закрыть без сохранения?')
+        return state['dirty'] and not ask(_('Есть несохранённые изменения. Закрыть без сохранения?'))
     win.connect('delete-event', on_close)
     win.connect('destroy', Gtk.main_quit)
     view.load_uri(page_uri)

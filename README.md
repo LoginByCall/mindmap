@@ -1,5 +1,7 @@
 # Mind Map — лёгкий редактор на markmap
 
+**Русский** · [English](README.en.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [中文](README.zh.md)
+
 *Lightweight offline mind map editor for Linux (GTK3 + WebKit2GTK, markmap): Markdown, FreeMind, OPML, XMind, PDF export. MIT.*
 
 Просмотр и правка интеллект-карт под Linux. GTK3 + WebKit2GTK (системные пакеты), внутри — [markmap](https://github.com/markmap/markmap) 0.18.12 и d3 7.9.0, лежат локально в `web/vendor/`, сеть не нужна.
@@ -16,8 +18,8 @@
 ## Установка
 
 ```sh
-./build.sh [версия]     # по умолчанию 0.2.0 → dist/mindmap_0.2.0_all.deb и dist/mindmap.run
-sudo apt install ./dist/mindmap_0.2.0_all.deb
+./build.sh [версия]     # по умолчанию 0.3.0 → dist/mindmap_0.3.0_all.deb и dist/mindmap.run
+sudo apt install ./dist/mindmap_0.3.0_all.deb
 ```
 
 Пакет ставит команду `mindmap`, ярлык «Mind Map» в меню приложений, значок и типы файлов, зависимости подтянет apt.
@@ -36,6 +38,7 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 
 ## Возможности
 
+- Языки интерфейса, справки и обучения: русский, английский, испанский, французский, немецкий, китайский (упрощённый). Выбирается по системной локали, для остальных — английский; принудительно — `LANGUAGE=de mindmap`.
 - Масштаб: колесо, щипок на тачпаде, `Ctrl+=` / `Ctrl+-`; `Ctrl+0` — вписать в окно.
 - Создание и правка карты: на графе (двойной клик по названию или списку, правое меню, клавиши) и в исходнике Markdown (`Ctrl+E` — показать/скрыть). Обе стороны синхронизируются.
 - Справка — `F1` или «?»; «Файл → Обучение» — учебная карта с заданиями-флажками.
@@ -84,6 +87,7 @@ xdg-mime default mindmap.desktop text/x-markmap application/x-freemind applicati
 ```sh
 python3 test_formats.py      # .mm / .opml / .xmind, запись на диск
 node web/mdtree.test.js      # Markdown ⇄ дерево
+python3 tests/test_i18n.py   # переводы web/lang/*.json полны, якоря в картах живые
 python3 tests/test_ui.py     # интерфейс в headless Chrome (синтетические события)
 node tests/ui-input.mjs      # интерфейс настоящим вводом мыши (Chrome DevTools Protocol)
 ```

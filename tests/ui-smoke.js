@@ -7,6 +7,8 @@ const log = (...a) => console.log('SMOKE', ...a);
     await sleep(800);
     const ok = (c, m) => { if (!c) throw new Error('FAIL ' + m); log('ok', m); };
     ok(svg.querySelectorAll('g.markmap-node').length > 5, 'help map rendered');
+    // регрессия: обёртка строк в t() однажды вклеила «t(» в узел без списка
+    ok(!/t\(|\)[▸▾]/.test(svg.textContent), 'no stray t( in rendered nodes');
     // правый клик по узлу -> меню
     const g = elOf('Мышь'); const r = g.getBoundingClientRect();
     g.querySelector('foreignObject').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: r.x + 5, clientY: r.y + 5 }));
