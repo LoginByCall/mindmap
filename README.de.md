@@ -22,8 +22,8 @@ Abhängigkeiten (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Installation
 
 ```sh
-./build.sh [Version]     # Standard 0.4.1 → dist/mindmap_0.4.1_all.deb und dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.1_all.deb
+./build.sh [Version]     # Standard 0.4.2 → dist/mindmap_0.4.2_all.deb und dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.2_all.deb
 ```
 
 Das Paket installiert den Befehl `mindmap`, die Verknüpfung „Mind Map“ im Anwendungsmenü, das Symbol und die Dateitypen; die Abhängigkeiten zieht apt nach.
@@ -72,10 +72,10 @@ MAC=user@host python3 tests/test_mac.py    # auf dem Mac: Start, PDF, Formate, S
 - Nummerierte Listen nach CommonMark (`1.`, `1)`, die erste Nummer bleibt erhalten): „Zweige: Nummerierung“ und „Liste: Nummerierung“ im Zweigmenü, im Listenfeld – „1. “ in der ersten Zeile. Buchstabenlisten gibt es in Markdown nicht.
 - Bilder `![](foto.jpg)` in Knoten, Kontrollkästchen `- [ ] Aufgabe` / `- [x] erledigt` (Klick schaltet um).
 - Notiz unter dem Knoten – Zeilen `> Text`, Liste – `> - Eintrag`. In .mm/.opml/.xmind werden Notiz und Liste in einem Feld gespeichert.
-- Menü „Datei“: Neu, Öffnen, Speichern, Speichern unter, Export als PDF, Beenden (`Ctrl+Q`, fragt bei ungespeicherten Änderungen nach).
+- Menü „Datei“: Neu, Öffnen, Zuletzt verwendet (10 Dateien), Speichern, Speichern unter, Export als PDF, Beenden (`Ctrl+Q`, fragt bei ungespeicherten Änderungen nach).
 - Liste unter dem Knotenstrich – in kleiner Schrift, per Klick auf ▾/▸ zu- und aufklappbar. Sie wird in einem einzigen Feld bearbeitet (Doppelklick auf die Liste, `Shift+Enter` oder Menü): Zeile = Eintrag, `Shift+Enter` – neue Zeile, `Enter` – fertig, `Esc` – abbrechen. Leere Zeilen werden verworfen, ein leeres Feld entfernt die Liste.
 - Kontextmenü eines Zweigs: Unterzweig/Nachbarzweig hinzufügen, umbenennen, Farbe (Palette, beliebig, zurücksetzen), zuklappen, nach oben/unten verschieben, eine Ebene höher/tiefer, kopieren/ausschneiden/einfügen, löschen. An einer leeren Stelle: einpassen, alles auf-/zuklappen, Quelltext, PDF.
-- Tasten: `Tab`/`Enter` – Unterzweig/Nachbarzweig, `Shift+Enter` – Liste unter dem Knoten, `F2` – bearbeiten, `Del` – löschen, `Leertaste` – zuklappen, Pfeiltasten – navigieren, `Alt+Pfeiltasten` – verschieben, `Ctrl+Z`/`Ctrl+Y` – rückgängig/wiederholen, `Ctrl+N/O/S/Shift+S/P/Q`.
+- Tasten: `Tab`/`Enter` – Unterzweig/Nachbarzweig, `Shift+Enter` – Liste unter dem Knoten, `F2`/`Ctrl+Enter` – bearbeiten, `Del` – löschen, `Leertaste` – zuklappen, Pfeiltasten – navigieren, `Alt+Pfeiltasten` – verschieben, `Ctrl+Z`/`Ctrl+Y` – rückgängig/wiederholen, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formate: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). Das Format beim Speichern richtet sich nach der Dateiendung.
 - PDF-Export: vektorbasiert, eine Seite in der Größe der Karte.
 

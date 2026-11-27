@@ -15,7 +15,7 @@ const MAC = /Mac/.test(navigator.platform);
 const keys = (s) => (MAC ? s.replace(/Ctrl\+Shift\+/g, '⇧⌘').replace(/Ctrl\+?/g, '⌘').replace(/Alt\+/g, '⌥').replace(/Shift\+/g, '⇧') : s);
 document.querySelector('#help .hbox').innerHTML = keys(T['@helpHtml'] || document.querySelector('#help .hbox').innerHTML);
 // о программе — под заголовком справки, без перевода; ссылку оболочка отдаст браузеру (навигация мимо index.html → link)
-const VERSION = '0.4.1', REPO = 'https://github.com/LoginByCall/mindmap';   // версию отсюда берут build.sh и macos/build.sh
+const VERSION = '0.4.2', REPO = 'https://github.com/LoginByCall/mindmap';   // версию отсюда берут build.sh и macos/build.sh
 document.querySelector('#help h2').insertAdjacentHTML('afterend', `<p class="about">Mind Map ${VERSION} · <a href="${REPO}">${REPO.slice(8)}</a></p>`);
 for (const b of document.querySelectorAll('#bar button, #help .hbox')) {
   if (b.title) b.title = keys(t(b.title));
@@ -81,7 +81,7 @@ const HELP = `# Mind Map
 ## Клавиши
 - Tab / Enter — дочерняя / соседняя ветка
 - Shift+Enter — список под узлом (строка = пункт, «1. » в начале — нумерованный)
-- F2 — правка, Del — удалить
+- F2 / Ctrl+Enter — правка, Del — удалить
 - стрелки — навигация, Alt+стрелки — перемещение
 - Ctrl+E — исходник, Ctrl+P — PDF
 - F1 — справка, «Файл → Обучение» — учебная карта
@@ -101,6 +101,12 @@ const HELP = `# Mind Map
 
 let root, file = null, dirty = false, sel = null, clip = null, editing = null;
 let lastMd = '', undo = [], redo = [], parents = new Map();
+let recent = [];
+try { recent = JSON.parse(localStorage.recentFiles || '[]'); if (!Array.isArray(recent)) recent = []; } catch { /* хранилище недоступно — история будет только в этой сессии */ }
+function rememberFile(f) {
+  recent = [{ path: f.path, name: f.name }, ...recent.filter((r) => r.path !== f.path)].slice(0, 10);
+  try { localStorage.recentFiles = JSON.stringify(recent); } catch { /* не запомнится между запусками — не беда */ }
+}
 
 // ---------- мост к оболочке (GTK / macOS), команды — web/BRIDGE.md ----------
 const bridge = window.bridge = {
@@ -231,6 +237,7 @@ async function loadFile(r) {
     md = !b ? `# ${r.name.replace(/(\.mm)?\.[^.]*$/, '')}\n` : f ? mdtree.serialize(fromTree(await f.read(b)))
       : new TextDecoder('utf-8', { fatal: true }).decode(b);
   } catch (e) { return bridge.call('error', { text: `${r.name}: ${e.message}` }); }   // карта в редакторе цела
+  if (r.data != null) rememberFile(r);
   return loadMd(md, { path: r.path, name: r.name });
 }
 window.openFile = async (r) => { if (await confirmDiscard()) await loadFile(r); };   // файл из Finder при открытом окне
@@ -526,12 +533,32 @@ function nodeMenu(n) {
     { t: t('Удалить ветку'), k: 'Del', f: () => remove(n), dis: !p },
   ];
 }
+function recentMenu() {
+  const d = document.createElement('details'); d.className = 'recent';
+  d.append(Object.assign(document.createElement('summary'), { textContent: t('Недавние') }));
+  for (const r of recent.length ? recent : [null]) {
+    const item = document.createElement('div'); item.className = 'it' + (r ? '' : ' dis');
+    item.textContent = r ? r.name : t('Нет недавних файлов');
+    if (r) {
+      item.title = r.path;
+      item.onclick = () => { hideMenu(); openRecent(r); };
+    }
+    d.append(item);
+  }
+  return d;
+}
+async function openRecent(r) {
+  if (!(await confirmDiscard())) return;
+  const f = await bridge.call('link', { href: r.path.split('/').map(encodeURIComponent).join('/') });
+  if (f) await loadFile(f);
+}
 const fileMenu = () => [
   { t: t('Справка'), k: 'F1', f: cmds.help },
   { t: t('Обучение'), f: cmds.tutorial },
   '-',
   { t: t('Новый'), k: 'Ctrl+N', f: cmds.new },
   { t: t('Открыть…'), k: 'Ctrl+O', f: cmds.open },
+  { el: recentMenu() },
   '-',
   { t: t('Сохранить'), k: 'Ctrl+S', f: cmds.save },
   { t: t('Сохранить как…'), k: 'Ctrl+Shift+S', f: cmds.saveAs },
@@ -576,7 +603,7 @@ async function write(path) {
   flushSrc();
   const f = formats[extOf(path)], data = f ? f.write(toTree(root)) : new TextEncoder().encode(lastMd);
   const r = await bridge.call('save', { path, data: formats.b64(data) });
-  if (r) { file = r; setDirty(false); }
+  if (r) { file = r; setDirty(false); rememberFile(r); }
 }
 async function exportPdf(path) {
   const g = mm.g.node().getBBox(), s = mm.state.rect, pad = 20;
@@ -635,7 +662,9 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'F1') { e.preventDefault(); return toggleHelp(true); }
   if (e.key === 'Escape') { hideMenu(); endDrag(); }
-  const c = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  const c = e.ctrlKey || e.metaKey;
+  const physical = { Equal: '=', NumpadAdd: '+', Minus: '-', NumpadSubtract: '-', NumpadEnter: 'Enter' }[e.code] || e.code.replace(/^(Key|Digit)/, '');
+  const k = (/^[a-z]$/i.test(e.key) ? e.key : physical || e.key).toLowerCase();   // латинская раскладка — по букве; остальные — по физической клавише
   if (c) {
     const m = { n: cmds.new, o: cmds.open, s: e.shiftKey ? cmds.saveAs : cmds.save, p: cmds.pdf, q: cmds.quit, e: cmds.toggleSrc, 0: cmds.fit,
       '=': cmds.zoomIn, '+': cmds.zoomIn, '-': cmds.zoomOut }[k];
@@ -643,7 +672,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.target === src || editing) return;   // в текстовых полях — штатное поведение
   const n = sel, p = n && parents.get(n);
-  const act = c ? { z: e.shiftKey ? redoFn : undoFn, y: redoFn, c: n && (() => copy(n)), x: n && (() => cut(n)), v: n && (() => paste(n)) }[k]
+  const act = c ? { enter: n && (() => startEdit(n)), z: e.shiftKey ? redoFn : undoFn, y: redoFn, c: n && (() => copy(n)), x: n && (() => cut(n)), v: n && (() => paste(n)) }[k]
     : e.altKey ? n && { ArrowUp: () => move(n, -1), ArrowDown: () => move(n, 1), ArrowLeft: () => outdent(n), ArrowRight: () => indent(n) }[e.key]
     : n && {
       Tab: () => addChild(n), Enter: () => (e.shiftKey ? startEdit(n, true) : addSibling(n)), Delete: () => remove(n), F2: () => startEdit(n), ' ': () => toggle(n),

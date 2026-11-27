@@ -20,8 +20,8 @@ Dependencias (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Instalación
 
 ```sh
-./build.sh [versión]     # por defecto 0.4.1 → dist/mindmap_0.4.1_all.deb y dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.1_all.deb
+./build.sh [versión]     # por defecto 0.4.2 → dist/mindmap_0.4.2_all.deb y dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.2_all.deb
 ```
 
 El paquete instala el comando `mindmap`, el lanzador «Mind Map» en el menú de aplicaciones, el icono y los tipos de archivo; apt se encarga de las dependencias.
@@ -70,10 +70,10 @@ MAC=user@host python3 tests/test_mac.py    # en el Mac: arranque, PDF, formatos,
 - Listas numeradas según CommonMark (`1.`, `1)`, se conserva el primer número): «Ramas: numeración» y «Lista: numeración» en el menú de la rama; en el campo de la lista, «1. » en la primera línea. En Markdown no hay listas con letras.
 - Imágenes `![](foto.jpg)` en los nodos, casillas `- [ ] tarea` / `- [x] hecho` (un clic las alterna).
 - Una nota bajo el nodo son líneas `> texto`; una lista, `> - elemento`. En .mm/.opml/.xmind la nota y la lista se guardan en un único campo.
-- Menú «Archivo»: nuevo, abrir, guardar, guardar como, exportar a PDF, salir (`Ctrl+Q`, preguntará por lo no guardado).
+- Menú «Archivo»: nuevo, abrir, recientes (los 10 últimos), guardar, guardar como, exportar a PDF, salir (`Ctrl+Q`, preguntará por lo no guardado).
 - La lista bajo la línea del nodo va en letra pequeña y se contrae con un clic en ▾/▸. Se edita en un solo campo (doble clic en la lista, `Shift+Enter` o el menú): una línea = un elemento, `Shift+Enter` nueva línea, `Enter` listo, `Esc` cancelar. Las líneas vacías se descartan; un campo vacío elimina la lista.
 - Menú contextual de la rama: añadir hija/hermana, renombrar, color (paleta, personalizado, quitar), contraer, mover arriba/abajo, subir/bajar de nivel, copiar/cortar/pegar, eliminar. En el espacio vacío: ajustar, expandir/contraer todo, fuente, PDF.
-- Teclas: `Tab`/`Enter` rama hija/hermana, `Shift+Enter` lista bajo el nodo, `F2` editar, `Supr` eliminar, `Espacio` contraer, flechas para navegar, `Alt+flechas` para mover, `Ctrl+Z`/`Ctrl+Y` deshacer/rehacer, `Ctrl+N/O/S/Shift+S/P/Q`.
+- Teclas: `Tab`/`Enter` rama hija/hermana, `Shift+Enter` lista bajo el nodo, `F2`/`Ctrl+Enter` editar, `Supr` eliminar, `Espacio` contraer, flechas para navegar, `Alt+flechas` para mover, `Ctrl+Z`/`Ctrl+Y` deshacer/rehacer, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formatos: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). El formato al guardar se elige por la extensión.
 - Exportación a PDF: vectorial, una página del tamaño del mapa.
 

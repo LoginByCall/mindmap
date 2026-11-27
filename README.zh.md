@@ -20,8 +20,8 @@
 ## 安装
 
 ```sh
-./build.sh [版本]     # 默认 0.4.1 → dist/mindmap_0.4.1_all.deb 和 dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.1_all.deb
+./build.sh [版本]     # 默认 0.4.2 → dist/mindmap_0.4.2_all.deb 和 dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.2_all.deb
 ```
 
 软件包会安装 `mindmap` 命令、应用程序菜单中的“Mind Map”启动器、图标和文件类型，依赖由 apt 自动安装。
@@ -70,10 +70,10 @@ MAC=user@host python3 tests/test_mac.py    # 在 Mac 上：启动、PDF、格式
 - 按 CommonMark 的编号列表（`1.`、`1)`，保留第一个编号）：分支菜单中的“分支：编号”和“列表：编号”，在列表输入框中第一行写“1. ”。Markdown 中没有字母列表。
 - 节点中的图片 `![](照片.jpg)`，复选框 `- [ ] 待办` / `- [x] 已完成`（点击切换）。
 - 节点下的备注——以 `> 文字` 开头的行，列表——`> - 项目`。在 .mm/.opml/.xmind 中，备注和列表存放在同一个字段里。
-- “文件”菜单：新建、打开、保存、另存为、导出为 PDF、退出（`Ctrl+Q`，有未保存内容时会询问）。
+- “文件”菜单：新建、打开、最近文件（10 个）、保存、另存为、导出为 PDF、退出（`Ctrl+Q`，有未保存内容时会询问）。
 - 节点横线下的列表——小字，点击 ▾/▸ 折叠。用一个输入框编辑（双击列表、`Shift+Enter` 或菜单）：一行一项，`Shift+Enter`——换行，`Enter`——完成，`Esc`——取消。空行会被丢弃，输入框为空则移除列表。
 - 分支右键菜单：添加子分支/同级分支、重命名、颜色（调色板、自定义、重置）、折叠、上移/下移、升级/降级、复制/剪切/粘贴、删除。在空白处：适应窗口、全部展开/折叠、源码、PDF。
-- 按键：`Tab`/`Enter`——子分支/同级分支，`Shift+Enter`——节点下的列表，`F2`——编辑，`Del`——删除，`空格`——折叠，方向键——导航，`Alt+方向键`——移动，`Ctrl+Z`/`Ctrl+Y`——撤销/重做，`Ctrl+N/O/S/Shift+S/P/Q`。
+- 按键：`Tab`/`Enter`——子分支/同级分支，`Shift+Enter`——节点下的列表，`F2`/`Ctrl+Enter`——编辑，`Del`——删除，`空格`——折叠，方向键——导航，`Alt+方向键`——移动，`Ctrl+Z`/`Ctrl+Y`——撤销/重做，`Ctrl+N/O/S/Shift+S/P/Q`。
 - 格式：Markdown（`.mm.md`、`.md`）、FreeMind/Freeplane（`.mm`，XML）、OPML（`.opml`，XML）、XMind 2020+（`.xmind`）。保存时的格式由扩展名决定。
 - 导出为 PDF：矢量，单页，大小与导图一致。
 

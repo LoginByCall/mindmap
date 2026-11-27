@@ -18,8 +18,8 @@ Dependencies (Debian/Ubuntu): `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Installation
 
 ```sh
-./build.sh [version]     # default 0.4.1 → dist/mindmap_0.4.1_all.deb and dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.1_all.deb
+./build.sh [version]     # default 0.4.2 → dist/mindmap_0.4.2_all.deb and dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.2_all.deb
 ```
 
 The package installs the `mindmap` command, a "Mind Map" launcher in the application menu, an icon and file types; apt pulls in the dependencies.
@@ -68,10 +68,10 @@ MAC=user@host python3 tests/test_mac.py    # on the Mac: launch, PDF, formats, l
 - CommonMark numbered lists (`1.`, `1)`, the first number is kept): "Branches: numbering" and "List: numbering" in the branch menu, "1. " on the first line in the list field. Markdown has no lettered lists.
 - Images `![](photo.jpg)` in nodes, checkboxes `- [ ] to do` / `- [x] done` (a click toggles).
 - A note under a node — lines `> text`, a list — `> - item`. In .mm/.opml/.xmind the note and the list are stored in a single field.
-- "File" menu: new, open, save, save as, export to PDF, quit (`Ctrl+Q`, asks about unsaved changes).
+- "File" menu: new, open, recent (10 latest), save, save as, export to PDF, quit (`Ctrl+Q`, asks about unsaved changes).
 - A list under the node's line — in small type, collapsed by clicking ▾/▸. Edited in one field (double-click the list, `Shift+Enter` or the menu): a line is an item, `Shift+Enter` — new line, `Enter` — done, `Esc` — cancel. Empty lines are dropped, an empty field removes the list.
 - Branch context menu: add child/sibling, rename, color (palette, custom, reset), collapse, move up/down, promote/demote, copy/cut/paste, delete. On empty space: fit, expand/collapse all, source, PDF.
-- Keys: `Tab`/`Enter` — child/sibling, `Shift+Enter` — list under the node, `F2` — edit, `Del` — delete, `Space` — collapse, arrows — navigate, `Alt+arrows` — move, `Ctrl+Z`/`Ctrl+Y` — undo/redo, `Ctrl+N/O/S/Shift+S/P/Q`.
+- Keys: `Tab`/`Enter` — child/sibling, `Shift+Enter` — list under the node, `F2`/`Ctrl+Enter` — edit, `Del` — delete, `Space` — collapse, arrows — navigate, `Alt+arrows` — move, `Ctrl+Z`/`Ctrl+Y` — undo/redo, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formats: Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). The format on save is chosen by the extension.
 - PDF export: vector, a single page sized to the map.
 

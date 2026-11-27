@@ -29,6 +29,9 @@
   #menu .it:hover { background: var(--hover); }
   #menu .it.dis { color: var(--muted); pointer-events: none; }
   #menu .it kbd { color: var(--muted); font: inherit; }
+  #menu .recent summary { padding: 5px 14px; cursor: default; }
+  #menu .recent summary:hover { background: var(--hover); }
+  #menu .recent .it { padding-left: 28px; }
   #menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
   #menu .sw { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 14px; }
   #menu .sw span { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 1px solid #0002; }
@@ -130,7 +133,7 @@
 <tr><td><kbd>Tab</kbd></td><td>новая дочерняя ветка</td></tr>
 <tr><td><kbd>Enter</kbd></td><td>новая соседняя ветка (на корне — дочерняя)</td></tr>
 <tr><td><kbd>Shift+Enter</kbd></td><td>список под узлом</td></tr>
-<tr><td><kbd>F2</kbd></td><td>правка названия</td></tr>
+<tr><td><kbd>F2</kbd> <kbd>Ctrl+Enter</kbd></td><td>правка названия</td></tr>
 <tr><td><kbd>Delete</kbd></td><td>удалить ветку (корень не удаляется)</td></tr>
 <tr><td><kbd>Пробел</kbd></td><td>свернуть или развернуть ветку</td></tr>
 <tr><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>к родителю / к первой дочерней / к соседу выше / ниже</td></tr>

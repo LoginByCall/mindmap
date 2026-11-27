@@ -20,8 +20,8 @@ Dépendances (Debian/Ubuntu) : `python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1`.
 ## Installation
 
 ```sh
-./build.sh [version]     # par défaut 0.4.1 → dist/mindmap_0.4.1_all.deb et dist/mindmap.run
-sudo apt install ./dist/mindmap_0.4.1_all.deb
+./build.sh [version]     # par défaut 0.4.2 → dist/mindmap_0.4.2_all.deb et dist/mindmap.run
+sudo apt install ./dist/mindmap_0.4.2_all.deb
 ```
 
 Le paquet installe la commande `mindmap`, le lanceur « Mind Map » dans le menu des applications, l’icône et les types de fichiers ; apt installe les dépendances.
@@ -70,10 +70,10 @@ MAC=user@host python3 tests/test_mac.py    # sur le Mac : lancement, PDF, format
 - Listes numérotées selon CommonMark (`1.`, `1)`, le premier numéro est conservé) : « Branches : numérotation » et « Liste : numérotation » dans le menu de la branche, dans le champ de liste — « 1. » sur la première ligne. Il n’y a pas de listes alphabétiques en Markdown.
 - Images `![](photo.jpg)` dans les nœuds, cases à cocher `- [ ] à faire` / `- [x] fait` (un clic bascule).
 - Note sous le nœud — lignes `> texte`, liste — `> - élément`. Dans .mm/.opml/.xmind, la note et la liste sont stockées dans un seul champ.
-- Menu « Fichier » : nouveau, ouvrir, enregistrer, enregistrer sous, exporter en PDF, quitter (`Ctrl+Q`, demande confirmation s’il reste des modifications non enregistrées).
+- Menu « Fichier » : nouveau, ouvrir, récents (10 derniers), enregistrer, enregistrer sous, exporter en PDF, quitter (`Ctrl+Q`, demande confirmation s’il reste des modifications non enregistrées).
 - Liste sous le trait du nœud — en petits caractères, se réduit d’un clic sur ▾/▸. Elle se modifie dans un seul champ (double-clic sur la liste, `Shift+Enter` ou menu) : une ligne — un élément, `Shift+Enter` — nouvelle ligne, `Enter` — terminé, `Esc` — annuler. Les lignes vides sont ignorées, un champ vide supprime la liste.
 - Menu contextuel de la branche : ajouter enfant/sœur, renommer, couleur (palette, personnalisée, réinitialisation), réduire, monter/descendre, remonter/descendre d’un niveau, copier/couper/coller, supprimer. Sur le vide : ajuster, tout développer/réduire, source, PDF.
-- Clavier : `Tab`/`Enter` — enfant/sœur, `Shift+Enter` — liste sous le nœud, `F2` — modifier, `Del` — supprimer, `Espace` — réduire, flèches — navigation, `Alt+flèches` — déplacement, `Ctrl+Z`/`Ctrl+Y` — annuler/rétablir, `Ctrl+N/O/S/Shift+S/P/Q`.
+- Clavier : `Tab`/`Enter` — enfant/sœur, `Shift+Enter` — liste sous le nœud, `F2`/`Ctrl+Enter` — modifier, `Del` — supprimer, `Espace` — réduire, flèches — navigation, `Alt+flèches` — déplacement, `Ctrl+Z`/`Ctrl+Y` — annuler/rétablir, `Ctrl+N/O/S/Shift+S/P/Q`.
 - Formats : Markdown (`.mm.md`, `.md`), FreeMind/Freeplane (`.mm`, XML), OPML (`.opml`, XML), XMind 2020+ (`.xmind`). Le format à l’enregistrement dépend de l’extension.
 - Export PDF : vectoriel, une page à la taille de la carte.
 

@@ -33,13 +33,24 @@ const until = async (f, ms = 3000) => { for (let t = 0; t < ms && !f(); t += 100
     editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
     ok(src.value.includes('- Новая ветка'), 'sibling added');
     ok(elOf('Новая ветка').querySelector('.mm-t').textContent === 'Новая ветка' && !svg.querySelector('[contenteditable]'), 'Esc restores node view');
-    // Del удаляет, Ctrl+Z возвращает
+    // Ctrl+Enter — та же правка, что F2
+    key('Enter', { ctrlKey: true, code: 'Enter' }); await sleep(300);
+    ok(editing?.n === sel, 'Ctrl+Enter starts editing');
+    editing.box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
+    // Del удаляет, Ctrl+Z возвращает; латинская буква важнее physical code (немецкая Z — KeyY)
     key('Delete'); await sleep(300);
     ok(!src.value.includes('Новая ветка'), 'deleted');
-    key('z', { ctrlKey: true }); await sleep(300);
-    ok(src.value.includes('Новая ветка'), 'undo works');
+    key('z', { ctrlKey: true, code: 'KeyY' }); await sleep(300);
+    ok(src.value.includes('Новая ветка'), 'undo works with German Z');
+    sel = elOf('Новая ветка').__data__.payload.ref;
+    key('Delete'); await sleep(300);
+    key('я', { ctrlKey: true, code: 'KeyZ' }); await sleep(300);
+    ok(src.value.includes('Новая ветка'), 'undo works with Russian layout');
+    let quit = false; const realQuit = cmds.quit; cmds.quit = () => { quit = true; };
+    key('a', { ctrlKey: true, code: 'KeyQ' }); cmds.quit = realQuit;
+    ok(!quit, 'AZERTY Ctrl+A does not become Ctrl+Q');
     // правка исходника -> карта
-    cmds.toggleSrc(); ok(!src.classList.contains('hidden'), 'source shown');
+    key('у', { ctrlKey: true, code: 'KeyE' }); ok(!src.classList.contains('hidden'), 'source shown with Russian layout');
     src.value = '# A\n\n- B\n  - C\n- D <!-- color: #59a14f -->\n'; src.dispatchEvent(new Event('input')); await sleep(800);
     ok(svg.querySelectorAll('g.markmap-node').length === 4, 'source edit re-rendered map');
     // свёртка по кружку
@@ -51,6 +62,18 @@ const until = async (f, ms = 3000) => { for (let t = 0; t < ms && !f(); t += 100
     // новый файл из командной строки: карта-заготовка с именем без расширения (у карт markmap оно двойное)
     await loadFile({ path: '/a/план.mm.md', name: 'план.mm.md', data: null }); ok(src.value === '# план\n', 'new map named план');
     await loadFile({ path: '/a/c.mm', name: 'c.mm', data: null }); ok(src.value === '# c\n', 'new map named c');
+    await loadFile({ path: '/a/recent.md', name: 'recent.md', data: formats.b64(new TextEncoder().encode('# Recent\n')) });
+    ok(recent[0]?.path === '/a/recent.md', 'opened file added to recent files');
+    for (let i = 0; i < 12; i++) rememberFile({ path: `/a/${i}.md`, name: `${i}.md` });
+    rememberFile({ path: '/a/C# 100%.md', name: 'C# 100%.md' });
+    cmds.file();
+    const recentDetails = menu.querySelector('details.recent'); recentDetails.open = true;
+    const recentItems = [...recentDetails.querySelectorAll('.it')];
+    ok(recentItems.length === 10 && recentItems[0].textContent === 'C# 100%.md' && JSON.parse(localStorage.recentFiles).length === 10, 'recent files capped at 10 newest and persisted');
+    let recentHref = '';
+    bridge.call = async (cmd, a) => cmd === 'link' ? (recentHref = a.href, { path: '/a/C# 100%.md', name: 'C# 100%.md', data: formats.b64(new TextEncoder().encode('# Recent special\n')) }) : null;
+    recentItems[0].click(); await sleep(500);
+    ok(recentHref === '/a/C%23%20100%25.md' && file?.path === '/a/C# 100%.md' && root.text === 'Recent special', 'recent menu item opens its exact encoded path');
     log('ALL PASSED');
   } catch (e) { log(e.message); }
   document.title = 'SMOKE-DONE';

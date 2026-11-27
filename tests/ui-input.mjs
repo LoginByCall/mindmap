@@ -207,7 +207,7 @@ try {
   // меню «Файл»: открыть, закрыть повторным кликом
   const fb = await js(`(() => { const r = fileBtn.getBoundingClientRect(); return [r.x + 10, r.y + 10]; })()`);
   await click(...fb);
-  ok(await js(`menu.style.display === 'block' && ['Справка', 'Обучение', 'Новый', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…', 'Выход'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
+  ok(await js(`menu.style.display === 'block' && ['Справка', 'Обучение', 'Новый', 'Недавние', 'Сохранить', 'Сохранить как…', 'Экспорт в PDF…', 'Выход'].every((t) => menu.textContent.includes(t))`), 'меню «Файл» с пунктами');
   await click(...fb);
   ok(await js(`menu.style.display === 'none'`), 'повторный клик по «Файл» закрывает меню');
 
@@ -252,7 +252,7 @@ try {
   await press('Escape', 'Escape', 27);
 
   // сверка: каждая клавиша из обработчиков есть в справке
-  const keys = ['Tab', 'Enter', 'Shift+Enter', 'F2', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
+  const keys = ['Tab', 'Enter', 'Shift+Enter', 'F2', 'Ctrl+Enter', 'Delete', 'Пробел', 'Alt+↑', 'Alt+↓', 'Alt+←', 'Alt+→', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V',
     'Ctrl+Z', 'Ctrl+Y', 'Ctrl+Shift+Z', 'Esc', 'Ctrl+N', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+P', 'Ctrl+E', 'Ctrl+=', 'Ctrl+-', 'Ctrl++', 'Ctrl+0', 'F1', 'Ctrl+Q'];
   const missing = await js(`${JSON.stringify(keys)}.filter((k) => ![...help.querySelectorAll('kbd')].some((e) => e.textContent === k))`);
   ok(!missing.length, 'в справке есть все клавиши' + (missing.length ? ': нет ' + missing.join(', ') : ''));
